@@ -1,103 +1,58 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { getCars, addCar, updateCar, deleteCar } from "@/lib/api";
-import CarTable from "@/components/CarTable";
-import CarForm from "@/components/CarForm";
+import {
+  Pieza,
+  getPiezas,
+  addPieza,
+  updatePieza,
+  deletePieza,
+} from "@/lib/api";
+import PiezaForm from "@/components/PiezaForm";
+import PiezaTable from "@/components/PiezaTable";
 
-export default function AdminPage() {
-  const router = useRouter();
-
-  const [authorized, setAuthorized] = useState<boolean | null>(null);
-  const [cars, setCars] = useState<any[]>([]);
+export default function PiezasAdminPage() {
+  const [piezas, setPiezas] = useState<Pieza[]>([]);
+  const [editingPieza, setEditingPieza] = useState<Pieza | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editingCar, setEditingCar] = useState<any | null>(null);
-  const [mounted, setMounted] = useState(false); // ✅ evitar SSR desincronizado
+
+  const loadPiezas = async () => {
+    const data = await getPiezas();
+    setPiezas(data);
+  };
 
   useEffect(() => {
-    setMounted(true);
+    loadPiezas();
   }, []);
 
-  // ✅ Verificar autenticación (solo en cliente)
-  useEffect(() => {
-    if (!mounted) return;
-
-    const rawUser = localStorage.getItem("user");
-    if (!rawUser) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      const user = JSON.parse(rawUser);
-      if (user?.rol !== "Admin" && user?.rol !== "ADMIN") {
-        router.push("/");
-        return;
-      }
-      setAuthorized(true);
-    } catch {
-      router.push("/login");
-    }
-  }, [mounted, router]);
-
-  // ✅ Cargar coches
-  async function loadCars() {
-    try {
-      const data = await getCars();
-      setCars(data);
-    } catch (error) {
-      console.error("Error cargando coches:", error);
-    }
-  }
-
-  useEffect(() => {
-    if (authorized) loadCars();
-  }, [authorized]);
-
-  // ✅ Handlers CRUD
-  const handleAddCar = async (data: any) => {
-    await addCar(data);
-    await loadCars();
+  const handleAdd = async (data: Partial<Pieza>): Promise<Pieza> => {
+    const saved = await addPieza(data);
+    await loadPiezas();
     setShowForm(false);
+    return saved;
   };
 
-  const handleEditClick = (car: any) => {
-    setEditingCar(car);
-    setShowForm(true);
-  };
-
-  const handleUpdateCar = async (data: any) => {
-    if (!editingCar) return;
-    await updateCar(editingCar.id, data);
-    await loadCars();
+  const handleUpdate = async (data: Partial<Pieza>): Promise<Pieza> => {
+    if (!editingPieza) throw new Error("No hay pieza en edición");
+    const saved = await updatePieza(editingPieza.id!, data);
+    await loadPiezas();
+    setEditingPieza(null);
     setShowForm(false);
-    setEditingCar(null);
+    return saved;
   };
 
-  const handleDeleteCar = async (id: number) => {
-    if (confirm("¿Eliminar este coche?")) {
-      await deleteCar(id);
-      await loadCars();
+  const handleDelete = async (id: number) => {
+    if (confirm("¿Eliminar esta pieza?")) {
+      await deletePieza(id);
+      await loadPiezas();
     }
   };
 
-  const handleCancel = () => {
-    setShowForm(false);
-    setEditingCar(null);
+  const saveHandler = async (data: Partial<Pieza>): Promise<Pieza | void> => {
+    if (editingPieza) return await handleUpdate(data);
+    else return await handleAdd(data);
   };
-
-  // 🚫 No renderizar antes de que el cliente esté montado
-  if (!mounted) return null;
-
-  if (authorized === null) {
-    return <p className="text-center mt-20">Verificando permisos...</p>;
-  }
-
-  if (!authorized) {
-    return <p className="text-center mt-20">Redirigiendo...</p>;
-  }
 
   return (
     <motion.section
@@ -106,32 +61,36 @@ export default function AdminPage() {
       animate={{ opacity: 1 }}
     >
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-blue-700">
-          Panel de administración
-        </h1>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
+        <h1 className="text-3xl font-bold text-green-700">Gestión de Piezas</h1>
+
+        <button
           onClick={() => {
             setShowForm(!showForm);
-            setEditingCar(null);
+            setEditingPieza(null);
           }}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
         >
-          {showForm ? "Volver" : "+ Añadir coche"}
-        </motion.button>
+          {showForm ? "Volver" : "+ Añadir pieza"}
+        </button>
       </div>
 
       {showForm ? (
-        <CarForm
-          initialData={editingCar || undefined}
-          onSave={editingCar ? handleUpdateCar : handleAddCar}
-          onCancel={handleCancel}
+        <PiezaForm
+          initialData={editingPieza || undefined}
+          onSave={saveHandler} // 👈 tipado flexible
+          onCancel={() => {
+            setShowForm(false);
+            setEditingPieza(null);
+          }}
         />
       ) : (
-        <CarTable
-          cars={cars}
-          onDelete={handleDeleteCar}
-          onEdit={handleEditClick}
+        <PiezaTable
+          piezas={piezas}
+          onEdit={(p) => {
+            setEditingPieza(p);
+            setShowForm(true);
+          }}
+          onDelete={handleDelete}
         />
       )}
     </motion.section>

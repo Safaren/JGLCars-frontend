@@ -1,23 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Pieza } from "@/lib/api";
 
 interface Props {
-  initialData?: any;
-  onSave: (data: any) => void;
+  initialData?: Partial<Pieza>;
+  // 👇 acepta que la función puede devolver una Pieza o nada
+  onSave: (data: Partial<Pieza>) => Promise<Pieza | void>;
   onCancel: () => void;
 }
 
 export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
   const [descripcion, setDescripcion] = useState(initialData?.descripcion || "");
-  const [precio, setPrecio] = useState(initialData?.precio || "");
-  const [carId, setCarId] = useState(initialData?.carId || "");
+  const [precio, setPrecio] = useState(initialData?.precio?.toString() || "");
+  const [carId, setCarId] = useState(initialData?.carId?.toString() || "");
   const [files, setFiles] = useState<File[]>([]);
   const [preview, setPreview] = useState<string[]>([]);
   const [existingFotos, setExistingFotos] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // Cargar fotos existentes (si editas una pieza)
+  // 🔄 Cargar fotos existentes (si editas una pieza)
   useEffect(() => {
     if (initialData?.id) {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-pieza/${initialData.id}`)
@@ -54,11 +56,17 @@ export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const piezaData = { descripcion, precio, carId };
-    const saved = await onSave(piezaData);
 
-    // Si se creó o actualizó, subimos las imágenes
-    if (saved?.id) await uploadImages(saved.id);
+    const piezaData: Partial<Pieza> = {
+      descripcion,
+      precio: parseFloat(precio),
+      carId: Number(carId),
+    };
+
+    const saved = await onSave(piezaData); // puede ser Pieza o void
+    if (saved && "id" in saved) {
+      await uploadImages(saved.id);
+    }
   };
 
   const handleDeleteFoto = async (id: number) => {
@@ -99,7 +107,6 @@ export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
         required
       />
 
-      {/* Galería */}
       <div>
         <label className="block text-gray-700 mb-1 font-semibold">
           Galería de fotos:
@@ -138,7 +145,10 @@ export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
             ))}
           </div>
         )}
-        {uploading && <p className="text-blue-600 text-sm mt-2">Subiendo fotos...</p>}
+
+        {uploading && (
+          <p className="text-blue-600 text-sm mt-2">Subiendo fotos...</p>
+        )}
       </div>
 
       <div className="flex gap-3 justify-end mt-6">
