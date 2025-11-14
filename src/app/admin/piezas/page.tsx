@@ -1,43 +1,45 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { getPiezas, addPieza, updatePieza, deletePieza } from "@/lib/api";
-import PiezaTable from "@/components/PiezaTable";
+import {
+  Pieza,
+  getPiezas,
+  addPieza,
+  updatePieza,
+  deletePieza,
+} from "@/lib/api";
 import PiezaForm from "@/components/PiezaForm";
+import PiezaTable from "@/components/PiezaTable";
 
-export default function PiezasPage() {
-  const router = useRouter();
-  const [piezas, setPiezas] = useState<any[]>([]);
+export default function PiezasAdminPage() {
+  const [piezas, setPiezas] = useState<Pieza[]>([]);
+  const [editingPieza, setEditingPieza] = useState<Pieza | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editingPieza, setEditingPieza] = useState<any | null>(null);
 
-  async function loadPiezas() {
-    try {
-      const data = await getPiezas();
-      setPiezas(data);
-    } catch (err) {
-      console.error("Error cargando piezas:", err);
-    }
-  }
+  const loadPiezas = async () => {
+    const data = await getPiezas();
+    setPiezas(data);
+  };
 
   useEffect(() => {
     loadPiezas();
   }, []);
 
-  const handleAdd = async (data: any) => {
-    await addPieza(data);
+  const handleAdd = async (data: Partial<Pieza>): Promise<Pieza> => {
+    const saved = await addPieza(data);
     await loadPiezas();
     setShowForm(false);
+    return saved;
   };
 
-  const handleUpdate = async (data: any) => {
-    if (!editingPieza) return;
-    await updatePieza(editingPieza.id, data);
+  const handleUpdate = async (data: Partial<Pieza>): Promise<Pieza> => {
+    if (!editingPieza) throw new Error("No hay pieza en edición");
+    const saved = await updatePieza(editingPieza.id!, data);
     await loadPiezas();
-    setShowForm(false);
     setEditingPieza(null);
+    setShowForm(false);
+    return saved;
   };
 
   const handleDelete = async (id: number) => {
@@ -47,6 +49,11 @@ export default function PiezasPage() {
     }
   };
 
+  const saveHandler = async (data: Partial<Pieza>): Promise<Pieza | void> => {
+    if (editingPieza) return await handleUpdate(data);
+    else return await handleAdd(data);
+  };
+
   return (
     <motion.section
       className="py-16 max-w-6xl mx-auto"
@@ -54,29 +61,35 @@ export default function PiezasPage() {
       animate={{ opacity: 1 }}
     >
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-blue-700">Gestión de piezas</h1>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
+        <h1 className="text-3xl font-bold text-green-700">Gestión de Piezas</h1>
+
+        <button
           onClick={() => {
             setShowForm(!showForm);
             setEditingPieza(null);
           }}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
         >
           {showForm ? "Volver" : "+ Añadir pieza"}
-        </motion.button>
+        </button>
       </div>
 
       {showForm ? (
         <PiezaForm
           initialData={editingPieza || undefined}
-          onSave={editingPieza ? handleUpdate : handleAdd}
-          onCancel={() => setShowForm(false)}
+          onSave={saveHandler} // 👈 tipado flexible
+          onCancel={() => {
+            setShowForm(false);
+            setEditingPieza(null);
+          }}
         />
       ) : (
         <PiezaTable
           piezas={piezas}
-          onEdit={setEditingPieza}
+          onEdit={(p) => {
+            setEditingPieza(p);
+            setShowForm(true);
+          }}
           onDelete={handleDelete}
         />
       )}

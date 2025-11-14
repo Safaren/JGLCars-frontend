@@ -1,98 +1,30 @@
-"use client";
+import CarCard from "@/components/CarCard";
+import HeroMarquee from "@/components/HeroMarquee";
+import { getCars } from "@/lib/api";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import {
-  Pieza,
-  getPiezas,
-  addPieza,
-  updatePieza,
-  deletePieza,
-} from "@/lib/api";
-import PiezaForm from "@/components/PiezaForm";
-import PiezaTable from "@/components/PiezaTable";
+export const dynamic = "force-dynamic"; 
 
-export default function PiezasAdminPage() {
-  const [piezas, setPiezas] = useState<Pieza[]>([]);
-  const [editingPieza, setEditingPieza] = useState<Pieza | null>(null);
-  const [showForm, setShowForm] = useState(false);
-
-  const loadPiezas = async () => {
-    const data = await getPiezas();
-    setPiezas(data);
-  };
-
-  useEffect(() => {
-    loadPiezas();
-  }, []);
-
-  const handleAdd = async (data: Partial<Pieza>): Promise<Pieza> => {
-    const saved = await addPieza(data);
-    await loadPiezas();
-    setShowForm(false);
-    return saved;
-  };
-
-  const handleUpdate = async (data: Partial<Pieza>): Promise<Pieza> => {
-    if (!editingPieza) throw new Error("No hay pieza en edición");
-    const saved = await updatePieza(editingPieza.id!, data);
-    await loadPiezas();
-    setEditingPieza(null);
-    setShowForm(false);
-    return saved;
-  };
-
-  const handleDelete = async (id: number) => {
-    if (confirm("¿Eliminar esta pieza?")) {
-      await deletePieza(id);
-      await loadPiezas();
-    }
-  };
-
-  const saveHandler = async (data: Partial<Pieza>): Promise<Pieza | void> => {
-    if (editingPieza) return await handleUpdate(data);
-    else return await handleAdd(data);
-  };
+export default async function HomePage() {
+  const cars = await getCars();
 
   return (
-    <motion.section
-      className="py-16 max-w-6xl mx-auto"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-    >
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-green-700">Gestión de Piezas</h1>
+    <main className="min-h-screen px-6 lg:px-16">
+      {/* Marquesina */}
+      <HeroMarquee />
 
-        <button
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditingPieza(null);
-          }}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
-          {showForm ? "Volver" : "+ Añadir pieza"}
-        </button>
+      {/* Título */}
+      <h2 className="text-3xl font-bold mb-6 text-center">
+        Coches de ocasión disponibles 🚗
+      </h2>
+
+      {/* Rejilla de coches */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-16">
+        {cars.length > 0 ? (
+          cars.map((car: any) => <CarCard key={car.id} car={car} />)
+        ) : (
+          <p className="text-gray-500">No hay coches disponibles en este momento.</p>
+        )}
       </div>
-
-      {showForm ? (
-        <PiezaForm
-          initialData={editingPieza || undefined}
-          onSave={saveHandler} // 👈 tipado flexible
-          onCancel={() => {
-            setShowForm(false);
-            setEditingPieza(null);
-          }}
-        />
-      ) : (
-        <PiezaTable
-          piezas={piezas}
-          onEdit={(p) => {
-            setEditingPieza(p);
-            setShowForm(true);
-          }}
-          onDelete={handleDelete}
-        />
-      )}
-    </motion.section>
+    </main>
   );
 }
