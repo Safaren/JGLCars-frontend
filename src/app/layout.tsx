@@ -1,6 +1,5 @@
 import "./globals.css";
-import NavBar from "@/components/NavBar"; // 👈 nombre igual que el archivo
-
+import NavBar from "@/components/Navbar";
 export const metadata = {
   title: "JLGCars | Coches de Ocasión",
   description: "Concesionario de coches de segunda mano y piezas - JLGCars",
