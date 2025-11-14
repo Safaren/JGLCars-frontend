@@ -86,12 +86,17 @@ async function fetchWithRefresh(url: string, options: any) {
  */
 
 export async function getCars(): Promise<Car[]> {
+  try {
   const res = await fetch(`${API_URL}/cars`, {
     method: "GET",
     credentials: "include",
   });
   if (!res.ok) throw new Error("Error al obtener coches");
   return res.json() as Promise<Car[]>;
+    } catch (error) {
+    console.error("⚠️ No se pudieron cargar los coches:", error);
+    return []; // 👈 evita romper el build si la API no responde
+  }
 }
 
 export async function addCar(carData: Partial<Car>): Promise<Car> {
