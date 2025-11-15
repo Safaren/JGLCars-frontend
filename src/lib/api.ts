@@ -1,6 +1,6 @@
 // src/lib/api.ts
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 // ─────────────────────────────────────────
 // TIPOS
@@ -67,7 +67,7 @@ async function fetchWithRefresh(url: string, options: any) {
   const res = await fetch(url, { ...options, credentials: "include" });
 
   if (res.status === 401) {
-    const refresh = await fetch(`${API_URL}/api/auth/refresh`, {
+    const refresh = await fetch(`${API_URL}/auth/refresh`, {
       method: "POST",
       credentials: "include",
     });
@@ -93,12 +93,12 @@ export async function login(email: string, password: string) {
   });
 
   if (!res.ok) throw new Error("Error en login");
+
   return res.json();
 }
 
-
 export async function register(data: any) {
-  const res = await fetch(`${API_URL}/api/auth/register`, {
+  const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -110,7 +110,7 @@ export async function register(data: any) {
 }
 
 export async function logout() {
-  await fetch(`${API_URL}/api/auth/logout`, {
+  await fetch(`${API_URL}/auth/logout`, {
     method: "POST",
     credentials: "include",
   });
@@ -121,15 +121,13 @@ export async function logout() {
 // ─────────────────────────────────────────
 
 export async function getCars(): Promise<Car[]> {
-  const res = await fetch(`${API_URL}/api/cars`, {
-    method: "GET",
-  });
+  const res = await fetch(`${API_URL}/cars`, { method: "GET" });
   if (!res.ok) throw new Error("Error al obtener coches");
   return res.json();
 }
 
 export async function addCar(data: Partial<Car>): Promise<Car> {
-  const res = await fetchWithRefresh(`${API_URL}/api/cars`, {
+  const res = await fetchWithRefresh(`${API_URL}/cars`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json", ...getCsrfHeader() },
@@ -141,7 +139,7 @@ export async function addCar(data: Partial<Car>): Promise<Car> {
 }
 
 export async function updateCar(id: number, data: Partial<Car>): Promise<Car> {
-  const res = await fetchWithRefresh(`${API_URL}/api/cars/${id}`, {
+  const res = await fetchWithRefresh(`${API_URL}/cars/${id}`, {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json", ...getCsrfHeader() },
@@ -152,7 +150,7 @@ export async function updateCar(id: number, data: Partial<Car>): Promise<Car> {
 }
 
 export async function deleteCar(id: number) {
-  const res = await fetchWithRefresh(`${API_URL}/api/cars/${id}`, {
+  const res = await fetchWithRefresh(`${API_URL}/cars/${id}`, {
     method: "DELETE",
     credentials: "include",
     headers: { ...getCsrfHeader() },
@@ -167,13 +165,13 @@ export async function deleteCar(id: number) {
 // ─────────────────────────────────────────
 
 export async function getPiezas(): Promise<Pieza[]> {
-  const res = await fetch(`${API_URL}/api/piezas`);
+  const res = await fetch(`${API_URL}/piezas`);
   if (!res.ok) throw new Error("Error al obtener piezas");
   return res.json();
 }
 
 export async function addPieza(data: Partial<Pieza>): Promise<Pieza> {
-  const res = await fetchWithRefresh(`${API_URL}/api/piezas`, {
+  const res = await fetchWithRefresh(`${API_URL}/piezas`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json", ...getCsrfHeader() },
@@ -185,7 +183,7 @@ export async function addPieza(data: Partial<Pieza>): Promise<Pieza> {
 }
 
 export async function updatePieza(id: number, data: Partial<Pieza>): Promise<Pieza> {
-  const res = await fetchWithRefresh(`${API_URL}/api/piezas/${id}`, {
+  const res = await fetchWithRefresh(`${API_URL}/piezas/${id}`, {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json", ...getCsrfHeader() },
@@ -197,7 +195,7 @@ export async function updatePieza(id: number, data: Partial<Pieza>): Promise<Pie
 }
 
 export async function deletePieza(id: number) {
-  const res = await fetchWithRefresh(`${API_URL}/api/piezas/${id}`, {
+  const res = await fetchWithRefresh(`${API_URL}/piezas/${id}`, {
     method: "DELETE",
     credentials: "include",
     headers: { ...getCsrfHeader() },
