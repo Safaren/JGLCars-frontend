@@ -85,7 +85,7 @@ async function fetchWithRefresh(url: string, options: any) {
 // ─────────────────────────────────────────
 
 export async function login(email: string, password: string) {
-  const res = await fetch(`${API_URL}/api/auth/login`, {
+  const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -93,9 +93,9 @@ export async function login(email: string, password: string) {
   });
 
   if (!res.ok) throw new Error("Error en login");
-
   return res.json();
 }
+
 
 export async function register(data: any) {
   const res = await fetch(`${API_URL}/api/auth/register`, {
