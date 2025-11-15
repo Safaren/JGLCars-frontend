@@ -122,7 +122,7 @@ export async function logout() {
 
 export async function getCars(): Promise<Car[]> {
   try {
-    const res = await fetch(`${API_URL}/api/cars`, {
+    const res = await fetch(`${API_URL}/cars`, {
       method: "GET",
       // IMPORTANTE: En SSR no uses credentials
       cache: "no-store",
