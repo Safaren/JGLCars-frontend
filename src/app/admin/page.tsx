@@ -1,30 +1,86 @@
-import CarCard from "@/components/CarCard";
-import HeroMarquee from "@/components/HeroMarquee";
-import { getCars } from "@/lib/api";
+"use client";
 
-export const dynamic = "force-dynamic"; 
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { getCars, addCar, updateCar, deleteCar } from "@/lib/api";
+import CarTable from "@/components/CarTable";
+import CarForm from "@/components/CarForm";
 
-export default async function HomePage() {
-  const cars = await getCars();
+export default function AdminPage() {
+  const [cars, setCars] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingCar, setEditingCar] = useState<any | null>(null);
+
+  async function loadCars() {
+    const data = await getCars();
+    setCars(data);
+  }
+
+  useEffect(() => {
+    loadCars();
+  }, []);
+
+  const handleAddCar = async (data: any) => {
+    await addCar(data);
+    await loadCars();
+    setShowForm(false);
+  };
+
+  const handleEditClick = (car: any) => {
+    setEditingCar(car);
+    setShowForm(true);
+  };
+
+  const handleUpdateCar = async (data: any) => {
+    if (!editingCar) return;
+    // Si hemos eliminado alguna imagen localmente, enviamos las imagenes que quedan.
+    await updateCar(editingCar.id, data);
+    await loadCars();
+    setShowForm(false);
+    setEditingCar(null);
+  };
+
+  const handleDeleteCar = async (id: number) => {
+    if (confirm("¿Eliminar este coche?")) {
+      await deleteCar(id);
+      await loadCars();
+    }
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingCar(null);
+  };
 
   return (
-    <main className="min-h-screen px-6 lg:px-16">
-      {/* Marquesina */}
-      <HeroMarquee />
-
-      {/* Título */}
-      <h2 className="text-3xl font-bold mb-6 text-center">
-        Coches de ocasión disponibles 🚗
-      </h2>
-
-      {/* Rejilla de coches */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-16">
-        {cars.length > 0 ? (
-          cars.map((car: any) => <CarCard key={car.id} car={car} />)
-        ) : (
-          <p className="text-gray-500">No hay coches disponibles en este momento.</p>
-        )}
+    <motion.section
+      className="py-16 max-w-6xl mx-auto"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-blue-700">Panel de administración</h1>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
+          onClick={() => {
+            setShowForm(!showForm);
+            setEditingCar(null);
+          }}
+        >
+          {showForm ? "Volver" : "+ Añadir coche"}
+        </motion.button>
       </div>
-    </main>
+
+      {showForm ? (
+        <CarForm
+          initialData={editingCar || undefined}
+          onSave={editingCar ? handleUpdateCar : handleAddCar}
+          onCancel={handleCancel}
+        />
+      ) : (
+        <CarTable cars={cars} onDelete={handleDeleteCar} onEdit={handleEditClick} />
+      )}
+    </motion.section>
   );
 }
