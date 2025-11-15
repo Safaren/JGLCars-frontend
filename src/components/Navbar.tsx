@@ -8,15 +8,17 @@ import { motion } from "framer-motion";
 export default function NavBar() {
   const router = useRouter();
   const [user, setUser] = useState<any | null>(null);
-  const [mounted, setMounted] = useState(false); // ✅ evitar render SSR desajustado
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true); // marcar cuando el cliente está listo
+    setMounted(true);
 
     const saved = localStorage.getItem("user");
     if (saved) {
       try {
-        setUser(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        parsed.rol = parsed.rol?.toUpperCase(); // 🔥 Normalizar rol
+        setUser(parsed);
       } catch {
         localStorage.removeItem("user");
       }
@@ -25,7 +27,7 @@ export default function NavBar() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -39,7 +41,6 @@ export default function NavBar() {
     router.push("/login");
   };
 
-  // ⚙️ Evitar render SSR hasta que el cliente esté montado
   if (!mounted) return null;
 
   return (
@@ -63,9 +64,10 @@ export default function NavBar() {
           </>
         ) : (
           <>
-            {(user.rol === "Admin" || user.rol === "ADMIN") && (
+            {user.rol === "ADMIN" && (
               <Link href="/admin">Panel</Link>
             )}
+
             <button
               onClick={handleLogout}
               className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
