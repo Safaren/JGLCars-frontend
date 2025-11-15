@@ -121,9 +121,23 @@ export async function logout() {
 // ─────────────────────────────────────────
 
 export async function getCars(): Promise<Car[]> {
-  const res = await fetch(`${API_URL}/cars`, { method: "GET" });
-  if (!res.ok) throw new Error("Error al obtener coches");
-  return res.json();
+  try {
+    const res = await fetch(`${API_URL}/api/cars`, {
+      method: "GET",
+      // IMPORTANTE: En SSR no uses credentials
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      console.error("❌ getCars() → error HTTP:", res.status);
+      return []; // fallback seguro
+    }
+
+    return await res.json();
+  } catch (err) {
+    console.error("❌ getCars() → error de red:", err);
+    return []; // fallback seguro
+  }
 }
 
 export async function addCar(data: Partial<Car>): Promise<Car> {
