@@ -1,8 +1,10 @@
+// src/lib/apiServer.ts
 
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://jlgcars-api.onrender.com/api";
-
+// ───────────────────────────────
+// TIPOS
+// ───────────────────────────────
 export interface Imagen {
   id: number;
   url: string;
@@ -13,30 +15,40 @@ export interface Car {
   id: number;
   marca: string;
   model: string;
-  precio: number;
-  color: string;
+  consumo: number;
   combustible: string;
   anoFabricacion: number;
+  cilindrada: number;
+  precio: number;
+  potencia: number;
+  color: string;
+  matricula: string;
+  tipoVenta: "COCHE" | "PIEZAS";
   imagenes?: Imagen[];
 }
 
+// ───────────────────────────────
+// GET — SIN AUTENTICACIÓN
+// ───────────────────────────────
+
 export async function getCars(): Promise<Car[]> {
-  try {
-    const res = await fetch(`${API_URL}/cars`, {
-      // ❗ Los Server Components NO mandan cookies
-      cache: "no-store",
-      next: { revalidate: 0 },
-    });
+  const res = await fetch(`${API}/cars`, {
+    cache: "no-store",
+    next: { revalidate: 0 },
+  });
 
-    if (!res.ok) {
-      console.error("❌ Error API getCars:", res.status);
-      return [];
-    }
+  if (!res.ok) return [];
 
-    return await res.json();
-  } catch (err) {
-    console.error("❌ Error getCars:", err);
-    return [];
-  }
+  return res.json();
 }
 
+export async function getCarById(id: number): Promise<Car | null> {
+  const res = await fetch(`${API}/cars/${id}`, {
+    cache: "no-store",
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) return null;
+
+  return res.json();
+}

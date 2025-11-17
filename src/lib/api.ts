@@ -1,10 +1,11 @@
+// src/lib/api.ts
 "use client";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-// =========================================================
+// ============================================================================
 // CSRF TOKEN
-// =========================================================
+// ============================================================================
 let csrfToken: string | null = null;
 
 export function setCsrfToken(token: string) {
@@ -21,9 +22,9 @@ export function getCsrfHeader() {
   return csrfToken ? { "X-CSRF-Token": csrfToken } : {};
 }
 
-// =========================================================
-// FETCH CON REFRESH AUTOMÁTICO
-// =========================================================
+// ============================================================================
+// FETCH WITH REFRESH
+// ============================================================================
 export async function fetchWithRefresh(path: string, options: any = {}) {
   const url = path.startsWith("http") ? path : `${API}${path}`;
 
@@ -36,31 +37,20 @@ export async function fetchWithRefresh(path: string, options: any = {}) {
     },
   });
 
-  // Si NO es 401 → bien
   if (res.status !== 401) return res;
 
-  console.warn("🔄 Token expirado → intentando refresh…");
-
-  // Intentar refrescar token
+  // REFRESH TOKEN
   const refreshRes = await fetch(`${API}/auth/refresh`, {
     method: "POST",
     credentials: "include",
   });
 
-  if (!refreshRes.ok) {
-    console.error("❌ Refresh falló:", refreshRes.status);
-    throw new Error("No se pudo refrescar token");
-  }
+  if (!refreshRes.ok) throw new Error("No se pudo refrescar token");
 
   const data = await refreshRes.json();
+  if (data.csrfToken) setCsrfToken(data.csrfToken);
 
-  // Guardar nuevo CSRF TOKEN
-  if (data.csrfToken) {
-    console.log("🔐 Nuevo CSRF recibido");
-    setCsrfToken(data.csrfToken);
-  }
-
-  // Repetir petición original
+  // REPETIR LA PETICIÓN
   return fetch(url, {
     ...options,
     credentials: "include",
@@ -71,9 +61,9 @@ export async function fetchWithRefresh(path: string, options: any = {}) {
   });
 }
 
-// =========================================================
+// ============================================================================
 // AUTENTICACIÓN
-// =========================================================
+// ============================================================================
 export async function login(email: string, password: string) {
   const res = await fetch(`${API}/auth/login`, {
     method: "POST",
@@ -84,7 +74,6 @@ export async function login(email: string, password: string) {
 
   const data = await res.json();
 
-  // Guardar CSRF token
   if (data.csrfToken) setCsrfToken(data.csrfToken);
 
   return data;
@@ -97,23 +86,18 @@ export async function logout() {
   });
 }
 
-// =========================================================
+// ============================================================================
 // COCHES (ADMIN)
-// =========================================================
+// ============================================================================
 export async function getCarsAdmin() {
-  const res = await fetchWithRefresh(`/cars`, {
-    method: "GET",
-  });
+  const res = await fetchWithRefresh(`/cars`);
   return res.json();
 }
 
 export async function addCar(data: any) {
   const res = await fetchWithRefresh(`/cars`, {
     method: "POST",
-    headers: { 
-      "Content-Type": "application/json",
-      ...getCsrfHeader(),
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   return res.json();
@@ -122,10 +106,7 @@ export async function addCar(data: any) {
 export async function updateCar(id: number, data: any) {
   const res = await fetchWithRefresh(`/cars/${id}`, {
     method: "PUT",
-    headers: { 
-      "Content-Type": "application/json",
-      ...getCsrfHeader(),
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   return res.json();
@@ -134,21 +115,17 @@ export async function updateCar(id: number, data: any) {
 export async function deleteCar(id: number) {
   const res = await fetchWithRefresh(`/cars/${id}`, {
     method: "DELETE",
-    headers: getCsrfHeader(),
   });
   return res.json();
 }
 
-// =========================================================
+// ============================================================================
 // PIEZAS (ADMIN)
-// =========================================================
+// ============================================================================
 export async function addPieza(data: any) {
   const res = await fetchWithRefresh(`/piezas`, {
     method: "POST",
-    headers: { 
-      "Content-Type": "application/json",
-      ...getCsrfHeader(),
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   return res.json();
@@ -157,10 +134,7 @@ export async function addPieza(data: any) {
 export async function updatePieza(id: number, data: any) {
   const res = await fetchWithRefresh(`/piezas/${id}`, {
     method: "PUT",
-    headers: { 
-      "Content-Type": "application/json",
-      ...getCsrfHeader(),
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   return res.json();
@@ -169,7 +143,6 @@ export async function updatePieza(id: number, data: any) {
 export async function deletePieza(id: number) {
   const res = await fetchWithRefresh(`/piezas/${id}`, {
     method: "DELETE",
-    headers: getCsrfHeader(),
   });
   return res.json();
 }
