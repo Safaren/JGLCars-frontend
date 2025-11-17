@@ -2,13 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-  Pieza,
-  getPiezas,
-  addPieza,
-  updatePieza,
-  deletePieza,
-} from "@/lib/api";
+import { addPieza, updatePieza, deletePieza } from "@/lib/api";
+
 import PiezaForm from "@/components/PiezaForm";
 import PiezaTable from "@/components/PiezaTable";
 

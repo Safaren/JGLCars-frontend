@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { getCars, addCar, updateCar, deleteCar } from "@/lib/api";
+import { getCarsAdmin, addCar, updateCar, deleteCar } from "@/lib/api";
 import CarTable from "@/components/CarTable";
 import CarForm from "@/components/CarForm";
 
