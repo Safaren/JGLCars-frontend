@@ -9,19 +9,25 @@ export function getCsrfHeader() {
 }
 
 export async function fetchWithRefresh(url: string, options: any = {}) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, {
-    ...options,
-    credentials: "include",
-    headers: {
-      ...(options.headers || {}),
-      ...getCsrfHeader(),
-    },
-  });
+  const api = process.env.NEXT_PUBLIC_API_URL;
+
+  async function doFetch() {
+    return fetch(api + url, {
+      ...options,
+      credentials: "include",
+      headers: {
+        ...(options.headers || {}),
+        ...getCsrfHeader(),
+      },
+    });
+  }
+
+  let res = await doFetch();
 
   if (res.status !== 401) return res;
 
-  // Si el token ha expirado → intentar refresh
-  const refresh = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+  // REFRESH SIN CSRF
+  const refresh = await fetch(api + "/auth/refresh", {
     method: "POST",
     credentials: "include",
   });
@@ -31,13 +37,5 @@ export async function fetchWithRefresh(url: string, options: any = {}) {
   const data = await refresh.json();
   if (data.csrfToken) setCsrfToken(data.csrfToken);
 
-  // Repetimos la petición original
-  return fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, {
-    ...options,
-    credentials: "include",
-    headers: {
-      ...(options.headers || {}),
-      ...getCsrfHeader(),
-    },
-  });
+  return doFetch();
 }
