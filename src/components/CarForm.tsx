@@ -13,20 +13,27 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
   const [model, setModel] = useState(initialData?.model || "");
   const [precio, setPrecio] = useState(initialData?.precio || "");
   const [combustible, setCombustible] = useState(initialData?.combustible || "");
-  const [anoFabricacion, setAnoFabricacion] = useState(initialData?.anoFabricacion || "");
+  const [anoFabricacion, setAnoFabricacion] = useState(
+    initialData?.anoFabricacion || ""
+  );
   const [color, setColor] = useState(initialData?.color || "");
+
+  // IMÁGENES
   const [files, setFiles] = useState<File[]>([]);
   const [preview, setPreview] = useState<string[]>([]);
   const [existingFotos, setExistingFotos] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
 
+  // Cargar fotos existentes si estás editando
   useEffect(() => {
-    if (initialData?.id) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-car/${initialData.id}`)
-        .then((r) => r.json())
-        .then(setExistingFotos)
-        .catch(console.error);
-    }
+    if (!initialData?.id) return;
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-car/${initialData.id}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (Array.isArray(res)) setExistingFotos(res);
+      })
+      .catch(console.error);
   }, [initialData]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,14 +44,15 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
 
   const uploadImages = async (carId: number) => {
     if (files.length === 0) return;
-    setUploading(true);
 
+    setUploading(true);
     const formData = new FormData();
     files.forEach((f) => formData.append("files", f));
 
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-car/${carId}`, {
         method: "POST",
+        credentials: "include",
         body: formData,
       });
     } catch (err) {
@@ -56,24 +64,38 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     const carData = {
       marca,
       model,
       precio: parseFloat(precio),
       combustible,
-      anoFabricacion: parseInt(anoFabricacion),
+      anoFabricacion: Number(anoFabricacion),
       color,
     };
+
+    // onSave siempre debe devolver el coche con ID
     const saved = await onSave(carData);
-    if (saved?.id) await uploadImages(saved.id);
+
+    if (!saved || !saved.id) {
+      console.error("❌ ERROR: onSave no devolvió el coche con ID");
+      alert("Error interno: El servidor no devolvió el ID del coche.");
+      return;
+    }
+
+    // Subimos imágenes si las hay
+    await uploadImages(saved.id);
   };
 
   const handleDeleteFoto = async (id: number) => {
     if (!confirm("¿Eliminar esta foto?")) return;
+
     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-car/${id}`, {
       method: "DELETE",
+      credentials: "include",
     });
-    setExistingFotos(existingFotos.filter((f) => f.id !== id));
+
+    setExistingFotos((prev) => prev.filter((f) => f.id !== id));
   };
 
   return (
@@ -90,6 +112,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
           onChange={(e) => setMarca(e.target.value)}
           required
         />
+
         <input
           type="text"
           placeholder="Modelo"
@@ -99,6 +122,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
           required
         />
       </div>
+
       <input
         type="number"
         placeholder="Precio (€)"
@@ -107,6 +131,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
         onChange={(e) => setPrecio(e.target.value)}
         required
       />
+
       <div className="grid grid-cols-2 gap-3">
         <input
           type="text"
@@ -115,6 +140,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
           value={combustible}
           onChange={(e) => setCombustible(e.target.value)}
         />
+
         <input
           type="number"
           placeholder="Año"
@@ -123,6 +149,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
           onChange={(e) => setAnoFabricacion(e.target.value)}
         />
       </div>
+
       <input
         type="text"
         placeholder="Color"
@@ -131,20 +158,28 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
         onChange={(e) => setColor(e.target.value)}
       />
 
-      {/* Subida múltiple de imágenes */}
+      {/* GALERÍA */}
       <div>
         <label className="block text-gray-700 mb-1 font-semibold">
           Galería de imágenes:
         </label>
+
         <input type="file" multiple accept="image/*" onChange={handleFileChange} />
+
+        {/* Nuevas imágenes */}
         {preview.length > 0 && (
           <div className="mt-4 grid grid-cols-3 gap-3">
             {preview.map((src, i) => (
-              <img key={i} src={src} className="w-24 h-24 object-cover rounded border" />
+              <img
+                key={i}
+                src={src}
+                className="w-24 h-24 object-cover rounded border"
+              />
             ))}
           </div>
         )}
 
+        {/* Imágenes existentes */}
         {existingFotos.length > 0 && (
           <div className="mt-4 grid grid-cols-3 gap-3">
             {existingFotos.map((foto) => (
@@ -152,7 +187,6 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
                 <img
                   src={foto.url}
                   className="w-24 h-24 object-cover rounded border"
-                  alt="foto coche"
                 />
                 <button
                   type="button"
@@ -165,9 +199,13 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
             ))}
           </div>
         )}
-        {uploading && <p className="text-blue-600 text-sm mt-2">Subiendo imágenes...</p>}
+
+        {uploading && (
+          <p className="text-blue-600 text-sm mt-2">Subiendo imágenes...</p>
+        )}
       </div>
 
+      {/* BOTONES */}
       <div className="flex gap-3 justify-end mt-6">
         <button
           type="button"
@@ -176,10 +214,11 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
         >
           Cancelar
         </button>
+
         <button
           type="submit"
-          disabled={uploading}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          disabled={uploading}
         >
           Guardar
         </button>
