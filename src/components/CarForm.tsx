@@ -50,7 +50,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
     files.forEach((f) => formData.append("files", f));
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}api/fotos-car/${carId}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-car/${carId}`, {
         method: "POST",
         credentials: "include",
         body: formData,
