@@ -1,5 +1,6 @@
 import CarCard from "@/components/CarCard";
-import HeroMarquee from "@/components/HeroMarquee";
+import CarCarousel from "@/components/CarCarousel";
+
 import { getCars, Car } from "@/lib/apiServer";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ export default async function HomePage() {
   let cars: Car[] = [];
 
   try {
-    cars = await getCars();
+    cars = await getCars()
   } catch (err) {
     console.error("Error al cargar coches en HomePage:", err);
     cars = [];
@@ -16,7 +17,14 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen px-6 lg:px-16">
-      <HeroMarquee />
+      <CarCarousel
+  images={[
+    "/cars/audi1.jpg",
+    "/cars/audi2.jpg",
+    "/cars/audi3.jpg",
+  ]}
+  interval={3000}
+/> 
 
       <h2 className="text-3xl font-bold mb-6 text-center">
         Coches de ocasión disponibles 🚗
