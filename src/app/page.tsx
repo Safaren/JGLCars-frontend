@@ -1,6 +1,6 @@
 import CarCard from "@/components/CarCard";
 import HeroMarquee from "@/components/HeroMarquee";
-import { getCars, Car } from "@/lib/api";
+import { getCars, Car } from "@/lib/apiServer";
 
 export const dynamic = "force-dynamic";
 
