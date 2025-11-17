@@ -1,220 +1,80 @@
-// src/lib/api.ts
+// src/app.js
+require("dotenv").config();
+const express = require("express");
+const helmet = require("helmet");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const app = express();
 
-// ─────────────────────────────────────────
-// TIPOS
-// ─────────────────────────────────────────
+// ─────────────────────────────────────────────
+//  CORS CONFIG ESPECIAL PARA RENDER + VERCEL
+// ─────────────────────────────────────────────
 
-export interface Pieza {
-  id: number;
-  descripcion: string;
-  precio: number;
-  carId: number;
-  car?: {
-    id: number;
-    marca: string;
-    model: string;
-  };
-  fotos?: FotoPieza[];
-}
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://jgl-cars-frontend.vercel.app",
+];
 
-export interface FotoPieza {
-  id: number;
-  parteCoche: string;
-  numero: number;
-  piezaId: number;
-  url?: string;
-}
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Permitir solicitudes sin origin (Postman, curl)
+      if (!origin) return callback(null, true);
 
-export interface Car {
-  id: number;
-  marca: string;
-  model: string;
-  consumo: number;
-  combustible: string;
-  anoFabricacion: number;
-  cilindrada: number;
-  precio: number;
-  potencia: number;
-  color: string;
-  matricula: string;
-  tipoVenta: "COCHE" | "PIEZAS";
-  imagenes?: Imagen[];
-  defectos?: any[];
-  piezas?: Pieza[];
-}
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        console.warn("⛔ Origen no permitido:", origin);
+        return callback(new Error("No permitido por CORS"));
+      }
+    },
+    credentials: true, // 🔥 NECESARIO PARA COOKIES
+  })
+);
 
-export interface Imagen {
-  id: number;
-  url: string;
-  carId: number;
-}
+// 🔥 NECESARIO PARA QUE VERCEL PUEDA RECIBIR COOKIES
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, X-CSRF-Token, Authorization"
+  );
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE");
+  next();
+});
 
-// ─────────────────────────────────────────
-// CSRF
-// ─────────────────────────────────────────
-function getCsrfHeader() {
-  if (typeof window === "undefined") return {};
-  const csrf = localStorage.getItem("csrfToken");
-  return csrf ? { "X-CSRF-Token": csrf } : {};
-}
+// ─────────────────────────────────────────────
+//  MIDDLEWARES
+// ─────────────────────────────────────────────
+app.use(helmet());
+app.use(express.json());
+app.use(cookieParser());
 
-// ─────────────────────────────────────────
-// TOKENS
-// ─────────────────────────────────────────
-async function fetchWithRefresh(url: string, options: any) {
-  const res = await fetch(url, { ...options, credentials: "include" });
+// ─────────────────────────────────────────────
+//  RUTAS
+// ─────────────────────────────────────────────
+const authRoutes = require("./routes/authRoutes");
+const carRoutes = require("./routes/carRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
+const favoritoRoutes = require("./routes/favoritoRoutes");
+const contactoRoutes = require("./routes/contactoRoutes");
+const piezaRoutes = require("./routes/piezaRoutes");
+const fotoPiezaRoutes = require("./routes/fotoPiezaRoutes");
+const fotoCarRoutes = require("./routes/fotoCarRoutes");
 
-  if (res.status === 401) {
-    const refresh = await fetch(`${API_URL}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-    });
+app.use("/api/auth", authRoutes);
+app.use("/api/cars", carRoutes);
+app.use("/api", uploadRoutes);
+app.use("/api/favoritos", favoritoRoutes);
+app.use("/api/contacto", contactoRoutes);
+app.use("/api/piezas", piezaRoutes);
+app.use("/api/fotos-pieza", fotoPiezaRoutes);
+app.use("/api/fotos-car", fotoCarRoutes);
 
-    if (refresh.ok) {
-      return fetch(url, { ...options, credentials: "include" });
-    }
-  }
+// RUTA DE PRUEBA
+app.get("/", (req, res) => {
+  res.json({ ok: true, message: "API funcionando correctamente 🚀" });
+});
 
-  return res;
-}
-
-// ─────────────────────────────────────────
-//  AUTENTICACIÓN
-// ─────────────────────────────────────────
-
-export async function login(email: string, password: string) {
-  const res = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-
-  if (!res.ok) throw new Error("Error en login");
-
-  return res.json();
-}
-
-export async function register(data: any) {
-  const res = await fetch(`${API_URL}/auth/register`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  if (!res.ok) throw new Error("Error en registro");
-  return res.json();
-}
-
-export async function logout() {
-  await fetch(`${API_URL}/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
-}
-
-// ─────────────────────────────────────────
-// 🚗 COCHES
-// ─────────────────────────────────────────
-
-export async function getCars(): Promise<Car[]> {
-  try {
-    const res = await fetch(`${API_URL}/cars`, {
-      method: "GET",
-      // IMPORTANTE: En SSR no uses credentials
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      console.error("❌ getCars() → error HTTP:", res.status);
-      return []; // fallback seguro
-    }
-
-    return await res.json();
-  } catch (err) {
-    console.error("❌ getCars() → error de red:", err);
-    return []; // fallback seguro
-  }
-}
-
-export async function addCar(data: Partial<Car>): Promise<Car> {
-  const res = await fetchWithRefresh(`${API_URL}/cars`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...getCsrfHeader() },
-    body: JSON.stringify(data),
-  });
-
-  if (!res.ok) throw new Error("Error al crear coche");
-  return res.json();
-}
-
-export async function updateCar(id: number, data: Partial<Car>): Promise<Car> {
-  const res = await fetchWithRefresh(`${API_URL}/cars/${id}`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...getCsrfHeader() },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Error al actualizar coche");
-  return res.json();
-}
-
-export async function deleteCar(id: number) {
-  const res = await fetchWithRefresh(`${API_URL}/cars/${id}`, {
-    method: "DELETE",
-    credentials: "include",
-    headers: { ...getCsrfHeader() },
-  });
-
-  if (!res.ok) throw new Error("Error al eliminar coche");
-  return res.json();
-}
-
-// ─────────────────────────────────────────
-// ⚙️ PIEZAS
-// ─────────────────────────────────────────
-
-export async function getPiezas(): Promise<Pieza[]> {
-  const res = await fetch(`${API_URL}/piezas`);
-  if (!res.ok) throw new Error("Error al obtener piezas");
-  return res.json();
-}
-
-export async function addPieza(data: Partial<Pieza>): Promise<Pieza> {
-  const res = await fetchWithRefresh(`${API_URL}/piezas`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...getCsrfHeader() },
-    body: JSON.stringify(data),
-  });
-
-  if (!res.ok) throw new Error("Error al crear pieza");
-  return res.json();
-}
-
-export async function updatePieza(id: number, data: Partial<Pieza>): Promise<Pieza> {
-  const res = await fetchWithRefresh(`${API_URL}/piezas/${id}`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...getCsrfHeader() },
-    body: JSON.stringify(data),
-  });
-
-  if (!res.ok) throw new Error("Error al actualizar pieza");
-  return res.json();
-}
-
-export async function deletePieza(id: number) {
-  const res = await fetchWithRefresh(`${API_URL}/piezas/${id}`, {
-    method: "DELETE",
-    credentials: "include",
-    headers: { ...getCsrfHeader() },
-  });
-
-  if (!res.ok) throw new Error("Error al eliminar pieza");
-  return res.json();
-}
+module.exports = app;
