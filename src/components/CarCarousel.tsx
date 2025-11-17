@@ -58,7 +58,7 @@ export default function CarCarousel({
             <Image
               src={src}
               width={1200}
-              height={700}
+              height={300}
               alt={`Slide ${i}`}
               className="w-full h-auto object-cover"
             />
