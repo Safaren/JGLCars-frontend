@@ -1,6 +1,6 @@
 "use client";
 
-import { Pieza } from "@/lib/api";
+import { Pieza } from "@/lib/types";  // 👈 Import correcto
 
 interface Props {
   piezas: Pieza[];
@@ -35,7 +35,7 @@ export default function PiezaTable({ piezas, onEdit, onDelete }: Props) {
                 Editar
               </button>
               <button
-                onClick={() => onDelete(p.id!)}
+                onClick={() => onDelete(p.id)}
                 className="text-red-600 hover:underline"
               >
                 Eliminar

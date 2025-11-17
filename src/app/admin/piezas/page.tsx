@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
 import { addPieza, updatePieza, deletePieza } from "@/lib/api";
+import { Pieza } from "@/lib/types";  // 👈 Asegúrate de tener este type o usa el de apiServer
 
 import PiezaForm from "@/components/PiezaForm";
 import PiezaTable from "@/components/PiezaTable";
@@ -12,8 +14,13 @@ export default function PiezasAdminPage() {
   const [editingPieza, setEditingPieza] = useState<Pieza | null>(null);
   const [showForm, setShowForm] = useState(false);
 
+  // 🔥 Obtener piezas SIN usar getPiezas (no existe en cliente)
   const loadPiezas = async () => {
-    const data = await getPiezas();
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/piezas`, {
+      credentials: "include",
+    });
+
+    const data = await res.json();
     setPiezas(data);
   };
 
@@ -21,6 +28,7 @@ export default function PiezasAdminPage() {
     loadPiezas();
   }, []);
 
+  // ➕ Crear pieza
   const handleAdd = async (data: Partial<Pieza>): Promise<Pieza> => {
     const saved = await addPieza(data);
     await loadPiezas();
@@ -28,8 +36,10 @@ export default function PiezasAdminPage() {
     return saved;
   };
 
+  // ✏️ Actualizar pieza
   const handleUpdate = async (data: Partial<Pieza>): Promise<Pieza> => {
     if (!editingPieza) throw new Error("No hay pieza en edición");
+
     const saved = await updatePieza(editingPieza.id!, data);
     await loadPiezas();
     setEditingPieza(null);
@@ -37,6 +47,7 @@ export default function PiezasAdminPage() {
     return saved;
   };
 
+  // ❌ Eliminar pieza
   const handleDelete = async (id: number) => {
     if (confirm("¿Eliminar esta pieza?")) {
       await deletePieza(id);
@@ -44,9 +55,9 @@ export default function PiezasAdminPage() {
     }
   };
 
-  const saveHandler = async (data: Partial<Pieza>): Promise<Pieza | void> => {
-    if (editingPieza) return await handleUpdate(data);
-    else return await handleAdd(data);
+  const saveHandler = async (data: Partial<Pieza>) => {
+    if (editingPieza) return handleUpdate(data);
+    return handleAdd(data);
   };
 
   return (
@@ -72,7 +83,7 @@ export default function PiezasAdminPage() {
       {showForm ? (
         <PiezaForm
           initialData={editingPieza || undefined}
-          onSave={saveHandler} // 👈 tipado flexible
+          onSave={saveHandler}
           onCancel={() => {
             setShowForm(false);
             setEditingPieza(null);

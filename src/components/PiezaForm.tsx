@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Pieza } from "@/lib/api";
+import { Pieza } from "@/lib/types";   // 👈 IMPORT CORRECTO
 
 interface Props {
   initialData?: Partial<Pieza>;
-  // 👇 acepta que la función puede devolver una Pieza o nada
   onSave: (data: Partial<Pieza>) => Promise<Pieza | void>;
   onCancel: () => void;
 }
@@ -19,10 +18,11 @@ export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
   const [existingFotos, setExistingFotos] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // 🔄 Cargar fotos existentes (si editas una pieza)
   useEffect(() => {
     if (initialData?.id) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-pieza/${initialData.id}`)
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-pieza/${initialData.id}`, {
+        credentials: "include",
+      })
         .then((r) => r.json())
         .then(setExistingFotos)
         .catch(console.error);
@@ -45,6 +45,7 @@ export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-pieza/${piezaId}`, {
         method: "POST",
+        credentials: "include",
         body: formData,
       });
     } catch (err) {
@@ -63,18 +64,22 @@ export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
       carId: Number(carId),
     };
 
-    const saved = await onSave(piezaData); // puede ser Pieza o void
-    if (saved && "id" in saved) {
+    const saved = await onSave(piezaData);
+
+    if (saved && saved.id) {
       await uploadImages(saved.id);
     }
   };
 
   const handleDeleteFoto = async (id: number) => {
     if (!confirm("¿Eliminar esta foto?")) return;
+
     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-pieza/${id}`, {
       method: "DELETE",
+      credentials: "include",
     });
-    setExistingFotos(existingFotos.filter((f) => f.id !== id));
+
+    setExistingFotos((prev) => prev.filter((f) => f.id !== id));
   };
 
   return (
@@ -90,6 +95,7 @@ export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
         onChange={(e) => setDescripcion(e.target.value)}
         required
       />
+
       <input
         type="number"
         placeholder="Precio (€)"
@@ -98,6 +104,7 @@ export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
         onChange={(e) => setPrecio(e.target.value)}
         required
       />
+
       <input
         type="number"
         placeholder="ID del coche asociado"
@@ -108,19 +115,13 @@ export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
       />
 
       <div>
-        <label className="block text-gray-700 mb-1 font-semibold">
-          Galería de fotos:
-        </label>
+        <label className="block mb-2 font-semibold">Galería de fotos:</label>
         <input type="file" multiple accept="image/*" onChange={handleFileChange} />
 
         {preview.length > 0 && (
           <div className="mt-4 grid grid-cols-3 gap-3">
             {preview.map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                className="w-24 h-24 object-cover rounded border"
-              />
+              <img key={i} src={src} className="w-24 h-24 object-cover rounded" />
             ))}
           </div>
         )}
@@ -132,7 +133,6 @@ export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
                 <img
                   src={foto.url}
                   className="w-24 h-24 object-cover rounded border"
-                  alt="foto pieza"
                 />
                 <button
                   type="button"
@@ -145,13 +145,9 @@ export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
             ))}
           </div>
         )}
-
-        {uploading && (
-          <p className="text-blue-600 text-sm mt-2">Subiendo fotos...</p>
-        )}
       </div>
 
-      <div className="flex gap-3 justify-end mt-6">
+      <div className="flex gap-3 justify-end">
         <button
           type="button"
           onClick={onCancel}
@@ -159,6 +155,7 @@ export default function PiezaForm({ initialData, onSave, onCancel }: Props) {
         >
           Cancelar
         </button>
+
         <button
           type="submit"
           disabled={uploading}
