@@ -21,9 +21,10 @@ export default function AdminPage() {
   }, []);
 
   const handleAddCar = async (data: any) => {
-    await addCar(data);
+    const savedCar = await addCar(data);
     await loadCars();
     setShowForm(false);
+    return savedCar;
   };
 
   const handleEditClick = (car: any) => {
@@ -33,11 +34,11 @@ export default function AdminPage() {
 
   const handleUpdateCar = async (data: any) => {
     if (!editingCar) return;
-    // Si hemos eliminado alguna imagen localmente, enviamos las imagenes que quedan.
-    await updateCar(editingCar.id, data);
+    const updatedCar = await updateCar(editingCar.id, data);
     await loadCars();
     setShowForm(false);
     setEditingCar(null);
+    return updatedCar;
   };
 
   const handleDeleteCar = async (id: number) => {
