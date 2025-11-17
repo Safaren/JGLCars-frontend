@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { getCarsAdmin, addCar, updateCar, deleteCar } from "@/lib/api";
+
+import {
+  getCarsAdmin,
+  addCar,
+  updateCar,
+  deleteCar,
+} from "@/lib/apiClient";
+
 import CarTable from "@/components/CarTable";
 import CarForm from "@/components/CarForm";
 
@@ -12,7 +19,7 @@ export default function AdminPage() {
   const [editingCar, setEditingCar] = useState<any | null>(null);
 
   async function loadCars() {
-    const data = await getCars();
+    const data = await getCarsAdmin(); // ✔ corregido
     setCars(data);
   }
 
@@ -60,7 +67,10 @@ export default function AdminPage() {
       animate={{ opacity: 1 }}
     >
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-blue-700">Panel de administración</h1>
+        <h1 className="text-3xl font-bold text-blue-700">
+          Panel de administración
+        </h1>
+
         <motion.button
           whileHover={{ scale: 1.05 }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
@@ -80,7 +90,11 @@ export default function AdminPage() {
           onCancel={handleCancel}
         />
       ) : (
-        <CarTable cars={cars} onDelete={handleDeleteCar} onEdit={handleEditClick} />
+        <CarTable
+          cars={cars}
+          onDelete={handleDeleteCar}
+          onEdit={handleEditClick}
+        />
       )}
     </motion.section>
   );
