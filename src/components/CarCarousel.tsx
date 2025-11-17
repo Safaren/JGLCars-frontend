@@ -28,14 +28,22 @@ export default function CarCarousel({
       prev === 0 ? images.length - 1 : prev - 1
     );
 
-  useEffect(() => {
-    if (isPaused) return;
+ useEffect(() => {
+  // Si está en pausa, simplemente limpia y salimos sin devolver nada.
+  if (isPaused) {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    return;
+  }
 
-    timeoutRef.current && clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(nextSlide, interval);
+  // Si NO está en pausa, configuramos el autoplay
+  if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  timeoutRef.current = setTimeout(nextSlide, interval);
 
-    return () => timeoutRef.current && clearTimeout(timeoutRef.current);
-  }, [currentIndex, isPaused, interval]);
+  // Cleanup correcto
+  return () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  };
+}, [currentIndex, isPaused, interval]);
 
   // --- Swipe táctil ---
   const touchStartX = useRef(0);
