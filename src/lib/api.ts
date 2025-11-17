@@ -89,7 +89,7 @@ export async function logout() {
 // ============================================================================
 // COCHES (ADMIN)
 // ============================================================================
-export async function getCarsAdmin() {
+export async function getCars() {
   const res = await fetchWithRefresh(`/cars`);
   return res.json();
 }
