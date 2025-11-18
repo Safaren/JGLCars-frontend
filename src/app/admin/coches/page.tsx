@@ -29,7 +29,7 @@ export default function CochesPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cars`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars`);
         const data = await res.json();
         setCars(data);
         setFiltered(data);
