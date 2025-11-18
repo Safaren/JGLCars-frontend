@@ -15,10 +15,11 @@ interface Car {
   imagenes?: { url: string }[];
 }
 
-console.log("NAVEGANDO A:", `/admin/coches/${car.id}`);
+
 
 export default function CarCard({ car }: { car: Car }) {
   const img = car.imagenes?.[0]?.url || "/no-image.jpg";
+  console.log("NAVEGANDO A:", `/admin/coches/${car.id}`);
 console.log("CAR RECIBIDO:", car);
   return (
     <motion.div
