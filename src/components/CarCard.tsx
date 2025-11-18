@@ -17,7 +17,7 @@ interface Car {
 
 export default function CarCard({ car }: { car: Car }) {
   const img = car.imagenes?.[0]?.url || "/no-image.jpg";
-
+console.log("API_URL =", process.env.NEXT_PUBLIC_API_URL);
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
