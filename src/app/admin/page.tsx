@@ -1,103 +1,202 @@
-// src/app/admin/page.tsx
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-import {
-  getCarsAdmin,
-  addCar,
-  updateCar,
-  deleteCar,
-} from "@/lib/apiClient";
+interface FotoPieza {
+  id: number;
+  url: string;
+}
 
-import CarTable from "@/components/CarTable";
-import CarForm from "@/components/CarForm";
+interface Pieza {
+  id: number;
+  descripcion: string;
+  precio: number;
+  numero: number;
+  parteCoche: string;
+  car: {
+    marca: string;
+    model: string;
+  };
+  fotos?: FotoPieza[];
+}
 
-export default function AdminPage() {
-  const [cars, setCars] = useState<any[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingCar, setEditingCar] = useState<any | null>(null);
+export default function PiezasPage() {
+  const [piezas, setPiezas] = useState<Pieza[]>([]);
+  const [filtered, setFiltered] = useState<Pieza[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  async function loadCars() {
-    const data = await getCarsAdmin(); // ✔ corregido
-    setCars(data);
-  }
+  // Filtros
+  const [search, setSearch] = useState("");
+  const [marcaFilter, setMarcaFilter] = useState("");
+  const [parteFilter, setParteFilter] = useState("");
+  const [maxPrecio, setMaxPrecio] = useState<number | null>(null);
 
   useEffect(() => {
-    loadCars();
+    const load = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/piezas`);
+        const data = await res.json();
+        setPiezas(data);
+        setFiltered(data);
+      } catch (error) {
+        console.error("Error cargando piezas:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
   }, []);
 
-  const handleAddCar = async (data: any) => {
-    const savedCar = await addCar(data);
-    await loadCars();
-    setShowForm(false);
-    return savedCar;
-  };
+  // Filtros
+  useEffect(() => {
+    let res = [...piezas];
 
-  const handleEditClick = (car: any) => {
-    setEditingCar(car);
-    setShowForm(true);
-  };
-
-  const handleUpdateCar = async (data: any) => {
-    if (!editingCar) return;
-    const updatedCar = await updateCar(editingCar.id, data);
-    await loadCars();
-    setShowForm(false);
-    setEditingCar(null);
-    return updatedCar;
-  };
-
-  const handleDeleteCar = async (id: number) => {
-    if (confirm("¿Eliminar este coche?")) {
-      await deleteCar(id);
-      await loadCars();
+    if (search.trim() !== "") {
+      res = res.filter((p) =>
+        p.descripcion.toLowerCase().includes(search.toLowerCase())
+      );
     }
-  };
 
-  const handleCancel = () => {
-    setShowForm(false);
-    setEditingCar(null);
-  };
+    if (marcaFilter !== "") {
+      res = res.filter((p) => p.car.marca === marcaFilter);
+    }
+
+    if (parteFilter !== "") {
+      res = res.filter((p) => p.parteCoche === parteFilter);
+    }
+
+    if (maxPrecio !== null && maxPrecio > 0) {
+      res = res.filter((p) => p.precio <= maxPrecio);
+    }
+
+    setFiltered(res);
+  }, [search, marcaFilter, parteFilter, maxPrecio, piezas]);
+
+  const marcas = Array.from(new Set(piezas.map((p) => p.car.marca)));
+  const partes = Array.from(new Set(piezas.map((p) => p.parteCoche)));
 
   return (
-    <motion.section
-      className="py-16 max-w-6xl mx-auto"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-    >
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-blue-700">
-          Panel de administración
-        </h1>
+    <section className="max-w-7xl mx-auto px-6 mt-20 mb-32">
+      <h1 className="text-4xl font-extrabold text-blue-700 mb-10 text-center">
+        Piezas disponibles
+      </h1>
 
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditingCar(null);
-          }}
+      {/* FILTROS */}
+      <div
+        className="
+          bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md grid 
+          grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-10
+        "
+      >
+        {/* Buscador */}
+        <input
+          type="text"
+          placeholder="Buscar pieza..."
+          className="border rounded-xl p-3 w-full dark:bg-gray-700 dark:border-gray-600"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        {/* Marca */}
+        <select
+          className="border rounded-xl p-3 dark:bg-gray-700 dark:border-gray-600"
+          value={marcaFilter}
+          onChange={(e) => setMarcaFilter(e.target.value)}
         >
-          {showForm ? "Volver" : "+ Añadir coche"}
-        </motion.button>
+          <option value="">Todas las marcas</option>
+          {marcas.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+
+        {/* Parte */}
+        <select
+          className="border rounded-xl p-3 dark:bg-gray-700 dark:border-gray-600"
+          value={parteFilter}
+          onChange={(e) => setParteFilter(e.target.value)}
+        >
+          <option value="">Todas las partes</option>
+          {partes.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+
+        {/* Precio máximo */}
+        <input
+          type="number"
+          placeholder="Precio máximo (€)"
+          className="border rounded-xl p-3 w-full dark:bg-gray-700 dark:border-gray-600"
+          value={maxPrecio || ""}
+          onChange={(e) =>
+            setMaxPrecio(e.target.value ? Number(e.target.value) : null)
+          }
+        />
       </div>
 
-      {showForm ? (
-        <CarForm
-          initialData={editingCar || undefined}
-          onSave={editingCar ? handleUpdateCar : handleAddCar}
-          onCancel={handleCancel}
-        />
-      ) : (
-        <CarTable
-          cars={cars}
-          onDelete={handleDeleteCar}
-          onEdit={handleEditClick}
-        />
+      {/* LOADING SKELETON */}
+      {loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="bg-gray-200 dark:bg-gray-700 animate-pulse h-72 rounded-2xl"
+            ></div>
+          ))}
+        </div>
       )}
-    </motion.section>
+
+      {/* RESULTADOS VACÍOS */}
+      {!loading && filtered.length === 0 && (
+        <p className="text-center text-xl text-gray-600 dark:text-gray-400 mt-20">
+          No se encontraron piezas con esos filtros.
+        </p>
+      )}
+
+      {/* GRID DE PIEZAS */}
+      <motion.div
+        layout
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10"
+      >
+        {filtered.map((pieza) => (
+          <motion.div
+            key={pieza.id}
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl p-4 cursor-pointer border border-gray-100 dark:border-gray-700 transition"
+          >
+            {/* FOTO PRINCIPAL */}
+            <div className="relative w-full h-48 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden">
+              <img
+                src={pieza.fotos?.[0]?.url || "/no-image.jpg"}
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* INFO */}
+            <div className="mt-4 space-y-1">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">
+                {pieza.descripcion}
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">
+                Parte: {pieza.parteCoche}
+              </p>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">
+                Coche: {pieza.car.marca} {pieza.car.model}
+              </p>
+
+              <p className="text-blue-600 dark:text-blue-400 font-bold text-xl mt-2">
+                {pieza.precio.toLocaleString()} €
+              </p>
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+    </section>
   );
 }
