@@ -30,7 +30,7 @@ export default function CarCard({ car }: { car: Car }) {
         transition cursor-pointer
       "
     >
-      <Link href={`/coches/${car.id}`}>
+      <Link href={`/admin/coches/${car.id}`}>
         {/* IMAGEN */}
         <div className="relative w-full h-56 bg-gray-100">
           <Image
