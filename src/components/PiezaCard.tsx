@@ -1,6 +1,11 @@
 import Link from "next/link";
+import type { Pieza } from "@/lib/types";
 
-export default function PiezaCard({ pieza }) {
+interface PiezaCardProps {
+  pieza: Pieza;
+}
+
+export default function PiezaCard({ pieza }: PiezaCardProps) {
   const foto = pieza.fotos?.[0]?.url;
 
   return (
