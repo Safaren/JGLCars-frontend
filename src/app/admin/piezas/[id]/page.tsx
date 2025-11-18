@@ -1,3 +1,6 @@
+
+// src/app/admin/piezas/[id]/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";

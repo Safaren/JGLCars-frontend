@@ -154,9 +154,30 @@ export async function deletePieza(id: number) {
 // ============================================================================
 
 export async function getPiezas() {
-  const res = await fetchWithRefresh(`/piezas`);
-  return res.json();
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/piezas`, {
+      credentials: "include",   // ← IMPORTANTE (envía cookies JWT)
+    });
+
+    if (!res.ok) {
+      console.error("❌ Error cargando piezas:", await res.text());
+      return []; // Siempre devolver array
+    }
+
+    const data = await res.json();
+
+    if (!Array.isArray(data)) {
+      console.error("❌ API devolvió algo que no es array:", data);
+      return [];
+    }
+
+    return data;
+  } catch (err) {
+    console.error("❌ Error en getPiezas:", err);
+    return []; // Evitar crashes
+  }
 }
+
 
 export async function getPieza(id: number) {
   const res = await fetchWithRefresh(`/piezas/${id}`);
