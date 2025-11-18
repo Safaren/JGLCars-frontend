@@ -1,115 +1,110 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { getCars, addCar, updateCar, deleteCar } from "@/lib/api";
-import CarTable from "@/components/CarTable";
+import { useEffect, useState } from "react";
 import CarForm from "@/components/CarForm";
-import { useRouter } from "next/navigation";
+import CarTable from "@/components/CarTable";
+import CarouselAdmin from "@/components/CarouselAdmin";
+import { getCars, addCar, updateCar, deleteCar } from "@/lib/api";
 
-export default function AdminPage() {
-  const router = useRouter();
-  const [authorized, setAuthorized] = useState<boolean | null>(null);
-  const [cars, setCars] = useState<any[]>([]);
+export default function AdminPanel() {
+  const [cars, setCars] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingCar, setEditingCar] = useState<any | null>(null);
+  const [editingCar, setEditingCar] = useState(null);
+  const [section, setSection] = useState<"cars" | "carousel">("cars");
 
-
-  useEffect(() => {
-    const rawUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-
-    if (!token || !rawUser) {
-      router.push('/login');
-      return;
-    }
-
-    try {
-      const user = JSON.parse(rawUser);
-      if (user?.rol !== 'Admin' && user?.rol !== 'ADMIN') {
-        router.push('/');
-        return;
-      }
-      setAuthorized(true);
-    } catch (e) {
-      router.push('/login');
-    }
-  }, [router]);
-
-  if (authorized === null) {
-    return <p className="text-center mt-20">Verificando permisos...</p>;
-  }
-  
-  async function loadCars() {
+  const loadCars = async () => {
     const data = await getCars();
     setCars(data);
-  }
+  };
 
   useEffect(() => {
     loadCars();
   }, []);
 
-  const handleAddCar = async (data: any) => {
-    await addCar(data);
-    await loadCars();
-    setShowForm(false);
-  };
-
-  const handleEditClick = (car: any) => {
-    setEditingCar(car);
-    setShowForm(true);
-  };
-
-  const handleUpdateCar = async (data: any) => {
-    if (!editingCar) return;
-    // Si hemos eliminado alguna imagen localmente, enviamos las imagenes que quedan.
-    await updateCar(editingCar.id, data);
-    await loadCars();
-    setShowForm(false);
-    setEditingCar(null);
-  };
-
-  const handleDeleteCar = async (id: number) => {
-    if (confirm("¿Eliminar este coche?")) {
-      await deleteCar(id);
-      await loadCars();
+  const handleSaveCar = async (data) => {
+    if (editingCar) {
+      await updateCar(editingCar.id, data);
+    } else {
+      await addCar(data);
     }
-  };
-
-  const handleCancel = () => {
-    setShowForm(false);
+    loadCars();
     setEditingCar(null);
+    setShowForm(false);
   };
 
   return (
-    <motion.section
-      className="py-16 max-w-6xl mx-auto"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-    >
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-blue-700">Panel de administración</h1>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditingCar(null);
-          }}
+    <div className="p-6 max-w-6xl mx-auto">
+
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-blue-700">Panel de Administración</h1>
+
+        <button
+          className="bg-red-600 text-white px-4 py-2 rounded-lg"
+          onClick={() => fetch(`${process.env.NEXT_PUBLIC_API_URL}/logout`, { method: "POST", credentials: "include" })}
         >
-          {showForm ? "Volver" : "+ Añadir coche"}
-        </motion.button>
+          Cerrar sesión
+        </button>
       </div>
 
-      {showForm ? (
-        <CarForm
-          initialData={editingCar || undefined}
-          onSave={editingCar ? handleUpdateCar : handleAddCar}
-          onCancel={handleCancel}
-        />
-      ) : (
-        <CarTable cars={cars} onDelete={handleDeleteCar} onEdit={handleEditClick} />
+      {/* MENÚ */}
+      <div className="flex gap-4 mb-8">
+        <button
+          onClick={() => setSection("cars")}
+          className={`px-4 py-2 rounded ${section === "cars" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+        >
+          Gestión de coches
+        </button>
+
+        <button
+          onClick={() => setSection("carousel")}
+          className={`px-4 py-2 rounded ${section === "carousel" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+        >
+          Carrusel inicio
+        </button>
+      </div>
+
+      {/* SECCIÓN COCHES */}
+      {section === "cars" && (
+        <>
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg mb-4"
+            onClick={() => {
+              setShowForm(!showForm);
+              setEditingCar(null);
+            }}
+          >
+            {showForm ? "Cancelar" : "+ Añadir coche"}
+          </button>
+
+          {showForm ? (
+            <CarForm
+              initialData={editingCar || undefined}
+              onSave={handleSaveCar}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingCar(null);
+              }}
+            />
+          ) : (
+            <CarTable
+              cars={cars}
+              onEdit={(car) => {
+                setEditingCar(car);
+                setShowForm(true);
+              }}
+              onDelete={async (id) => {
+                if (confirm("¿Eliminar coche?")) {
+                  await deleteCar(id);
+                  loadCars();
+                }
+              }}
+            />
+          )}
+        </>
       )}
-    </motion.section>
+
+      {/* SECCIÓN CARRUSEL */}
+      {section === "carousel" && <CarouselAdmin />}
+    </div>
   );
 }
