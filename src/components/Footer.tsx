@@ -23,7 +23,7 @@ export default function Footer() {
           <h3 className="text-xl font-semibold text-white mb-4">Enlaces</h3>
           <ul className="space-y-2">
             <li><Link href="/" className="hover:text-white transition">Inicio</Link></li>
-            <li><Link href="/coches" className="hover:text-white transition">Coches disponibles</Link></li>
+            <li><Link href="/admin/coches" className="hover:text-white transition">Coches disponibles</Link></li>
             <li><Link href="/contacto" className="hover:text-white transition">Contacto</Link></li>
             <li><Link href="/admin" className="hover:text-white transition">Panel Admin</Link></li>
           </ul>

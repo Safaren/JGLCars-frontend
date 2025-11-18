@@ -18,7 +18,7 @@ export default function CarCard({ car }: { car: Car }) {
       whileHover={{ scale: 1.05 }}
       className="bg-white shadow-md rounded-2xl overflow-hidden hover:shadow-lg transition-all cursor-pointer"
     >
-      <Link href={`/coches/${car.id}`}>
+      <Link href={`/admin/coches/${car.id}`}>
         <div className="relative h-48 bg-gray-200">
           {car.imagenes?.length ? (
             <img
