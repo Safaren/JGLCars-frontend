@@ -20,7 +20,7 @@ export function middleware(req: NextRequest) {
         Buffer.from(access.split(".")[1], "base64").toString()
       );
 
-      if (payload.rol !== "admin") {
+     if (payload.rol?.toLowerCase() !== "admin") {
         return NextResponse.redirect(new URL("/", req.url));
       }
     } catch {
