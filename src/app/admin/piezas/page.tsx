@@ -9,6 +9,23 @@ import { Pieza } from "@/lib/types";  // 👈 Asegúrate de tener este type o us
 import PiezaForm from "@/components/PiezaForm";
 import PiezaTable from "@/components/PiezaTable";
 
+export async function generateMetadata({ params }): Promise<Metadata> {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cars/${params.id}`);
+  const car = await res.json();
+
+  return {
+    title: `${car.marca} ${car.model} – JLGCars`,
+    description: `Coche ${car.marca} ${car.model} con ${car.potencia}CV y precio de ${car.precio}€. Más detalles aquí.`,
+    openGraph: {
+      title: `${car.marca} ${car.model}`,
+      description: "Vehículo disponible en JLGCars.",
+      images: car.imagenes?.length
+        ? [{ url: car.imagenes[0].url }]
+        : [{ url: "/og-default.jpg" }],
+    },
+  };
+}
+
 export default function PiezasAdminPage() {
   const [piezas, setPiezas] = useState<Pieza[]>([]);
   const [editingPieza, setEditingPieza] = useState<Pieza | null>(null);

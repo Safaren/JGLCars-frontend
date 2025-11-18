@@ -1,43 +1,126 @@
-// src/app/admin/coches/[id]/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
-import GalleryLightbox from "@/components/GalleryLightbox";
+import { notFound, useRouter } from "next/navigation";
+import CarCarousel from "@/components/CarCarousel";
+import { motion } from "framer-motion";
+import Link from "next/link";
 
-export default function CarDetailPage({ params }: { params: { id: string } }) {
-  const [car, setCar] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+interface Car {
+  id: number;
+  marca: string;
+  model: string;
+  precio: number;
+  combustible: string;
+  color: string;
+  consumo?: number;
+  potencia?: number;
+  cilindrada?: number;
+  anoFabricacion?: number;
+  imagenes?: { url: string }[];
+}
+
+export default function CarPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const [car, setCar] = useState<Car | null>(null);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${params.id}`)
-      .then((res) => res.json())
-      .then((data) => {
+    const load = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/cars/${params.id}`
+        );
+
+        if (!res.ok) {
+          return notFound();
+        }
+
+        const data = await res.json();
         setCar(data);
-        setLoading(false);
-      });
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    load();
   }, [params.id]);
 
-  if (loading) return <p className="text-center mt-10">Cargando coche...</p>;
-  if (!car) return <p className="text-center mt-10">Coche no encontrado</p>;
+  if (!car) {
+    return (
+      <div className="text-center text-gray-500 text-xl mt-20">
+        Cargando coche...
+      </div>
+    );
+  }
+
+  const images = car.imagenes?.map((i) => i.url) || [];
 
   return (
-    <div className="max-w-5xl mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-4 text-blue-700">
-        {car.marca} {car.model}
-      </h1>
-      <p className="mb-4 text-gray-700">
-        {car.combustible} | {car.color} | {car.anoFabricacion}
-      </p>
+    <section className="max-w-6xl mx-auto px-6 mt-20 mb-32">
+      {/* Carrusel */}
+      <CarCarousel images={images} />
 
-      <GalleryLightbox images={car.imagenes?.map((i: any) => i.url) || []} />
+      {/* INFO */}
+      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-10">
+        {/* IZQUIERDA */}
+        <div>
+          <h1 className="text-4xl font-extrabold text-gray-800">
+            {car.marca} {car.model}
+          </h1>
 
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-2">Precio: {car.precio} €</h2>
-        <p className="text-gray-600">
-          Potencia: {car.potencia} CV | Cilindrada: {car.cilindrada} L
-        </p>
+          <p className="text-blue-600 text-3xl font-bold mt-3">
+            {car.precio.toLocaleString()} €
+          </p>
+
+          {/* ESPECIFICACIONES */}
+          <div className="mt-8 space-y-3">
+            <p className="text-lg"><strong>Color:</strong> {car.color}</p>
+            <p className="text-lg"><strong>Combustible:</strong> {car.combustible}</p>
+            {car.anoFabricacion && (
+              <p className="text-lg"><strong>Año:</strong> {car.anoFabricacion}</p>
+            )}
+            {car.potencia && (
+              <p className="text-lg"><strong>Potencia:</strong> {car.potencia} CV</p>
+            )}
+            {car.consumo && (
+              <p className="text-lg"><strong>Consumo:</strong> {car.consumo} L/100km</p>
+            )}
+            {car.cilindrada && (
+              <p className="text-lg"><strong>Cilindrada:</strong> {car.cilindrada} cc</p>
+            )}
+          </div>
+
+          {/* BOTÓN ME INTERESA */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() =>
+              router.push(
+                `/contacto?mensaje=${encodeURIComponent(
+                  `Estoy interesado en el coche ${car.marca} ${car.model} (ID: ${car.id}).`
+                )}`
+              )
+            }
+            className="
+              mt-10 bg-blue-600 text-white text-xl px-8 py-3 
+              rounded-xl shadow-lg hover:bg-blue-700 transition
+            "
+          >
+            Me interesa
+          </motion.button>
+        </div>
+
+        {/* DERECHA - GALERÍA PEQUEÑA */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          {images.slice(0, 8).map((img, i) => (
+            <img
+              key={i}
+              src={img}
+              className="rounded-lg object-cover w-full h-28 border shadow-sm"
+            />
+          ))}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
