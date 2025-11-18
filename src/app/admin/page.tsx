@@ -36,7 +36,7 @@ export default function PiezasPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/piezas`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/piezas`);
         const data = await res.json();
         setPiezas(data);
         setFiltered(data);

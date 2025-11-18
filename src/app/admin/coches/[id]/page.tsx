@@ -28,7 +28,7 @@ export default function CarPage({ params }: { params: { id: string } }) {
     const load = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/cars/${params.id}`
+          `${process.env.NEXT_PUBLIC_API_URL}/cars/${params.id}`
         );
 
         if (!res.ok) {
