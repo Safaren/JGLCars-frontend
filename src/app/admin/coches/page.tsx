@@ -26,22 +26,41 @@ export default function CochesPage() {
   const [combustibleFilter, setCombustibleFilter] = useState("");
   const [maxPrecio, setMaxPrecio] = useState<number | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars`);
-        const data = await res.json();
-        setCars(data);
-        setFiltered(data);
-      } catch (error) {
-        console.error("Error cargando coches:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+ useEffect(() => {
+  const load = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars`, {
+        credentials: "include", // ⬅️ NECESARIO PARA ENVIAR LA COOKIE DEL TOKEN
+      });
 
-    load();
-  }, []);
+      if (!res.ok) {
+        console.error("❌ Error HTTP:", res.status);
+        setCars([]);
+        setFiltered([]);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!Array.isArray(data)) {
+        console.error("❌ El backend devolvió un objeto, no un array:", data);
+        setCars([]);
+        setFiltered([]);
+        return;
+      }
+
+      setCars(data);
+      setFiltered(data);
+    } catch (error) {
+      console.error("Error cargando coches:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  load();
+}, []);
+
 
   // Aplicar filtros
   useEffect(() => {
