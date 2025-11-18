@@ -25,7 +25,7 @@ interface Car {
 export default function CarPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [car, setCar] = useState<Car | null>(null);
-
+console.log("CARGANDO PÁGINA ID — params:", params);
   useEffect(() => {
     const load = async () => {
       try {
