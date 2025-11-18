@@ -1,5 +1,5 @@
 
-// src/app/admin/coches/%5Bid%5D/page.tsx
+// src/app/admin/coches/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
