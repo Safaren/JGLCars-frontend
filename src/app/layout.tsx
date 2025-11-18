@@ -1,3 +1,6 @@
+
+// src/app/layout.tsx
+
 import "./globals.css";
 import { defaultMetadata } from "@/lib/seo";
 import NavBar from "@/components/NavBar";
