@@ -15,12 +15,9 @@ interface Car {
   imagenes?: { url: string }[];
 }
 
-
-
 export default function CarCard({ car }: { car: Car }) {
   const img = car.imagenes?.[0]?.url || "/no-image.jpg";
-  console.log("NAVEGANDO A:", `/admin/coches/${car.id}`);
-console.log("CAR RECIBIDO:", car);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -33,7 +30,7 @@ console.log("CAR RECIBIDO:", car);
         transition cursor-pointer
       "
     >
-      <Link href={`/admin/coches/${car.id}`}>
+      <Link href={`admin/coches/${car.id}`}>
         {/* IMAGEN */}
         <div className="relative w-full h-56 bg-gray-100">
           <Image
