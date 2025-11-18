@@ -146,3 +146,23 @@ export async function deletePieza(id: number) {
   });
   return res.json();
 }
+
+
+//
+// ============================================================================
+// PIEZAS (ADMIN)
+// ============================================================================
+
+export async function getPiezas() {
+  const res = await fetchWithRefresh(`/piezas`);
+  return res.json();
+}
+
+export async function getPieza(id: number) {
+  const res = await fetchWithRefresh(`/piezas/${id}`);
+  return res.json();
+}
+
+
+
+
