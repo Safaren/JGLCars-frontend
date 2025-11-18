@@ -5,11 +5,12 @@ import CarForm from "@/components/CarForm";
 import CarTable from "@/components/CarTable";
 import CarouselAdmin from "@/components/CarouselAdmin";
 import { getCars, addCar, updateCar, deleteCar } from "@/lib/api";
+import { Car, CarInput } from "@/types";
 
-export default function AdminPanel() {
-  const [cars, setCars] = useState([]);
+export default function AdminPage() {
+  const [cars, setCars] = useState<Car[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingCar, setEditingCar] = useState(null);
+  const [editingCar, setEditingCar] = useState<Car | null>(null);
   const [section, setSection] = useState<"cars" | "carousel">("cars");
 
   const loadCars = async () => {
@@ -21,13 +22,14 @@ export default function AdminPanel() {
     loadCars();
   }, []);
 
-  const handleSaveCar = async (data) => {
+  const handleSaveCar = async (data: CarInput) => {
     if (editingCar) {
       await updateCar(editingCar.id, data);
     } else {
       await addCar(data);
     }
-    loadCars();
+
+    await loadCars();
     setEditingCar(null);
     setShowForm(false);
   };
@@ -40,30 +42,37 @@ export default function AdminPanel() {
 
         <button
           className="bg-red-600 text-white px-4 py-2 rounded-lg"
-          onClick={() => fetch(`${process.env.NEXT_PUBLIC_API_URL}/logout`, { method: "POST", credentials: "include" })}
+          onClick={() =>
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/logout`, {
+              method: "POST",
+              credentials: "include",
+            })
+          }
         >
           Cerrar sesión
         </button>
       </div>
 
-      {/* MENÚ */}
       <div className="flex gap-4 mb-8">
         <button
           onClick={() => setSection("cars")}
-          className={`px-4 py-2 rounded ${section === "cars" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+          className={`px-4 py-2 rounded ${
+            section === "cars" ? "bg-blue-600 text-white" : "bg-gray-200"
+          }`}
         >
           Gestión de coches
         </button>
 
         <button
           onClick={() => setSection("carousel")}
-          className={`px-4 py-2 rounded ${section === "carousel" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+          className={`px-4 py-2 rounded ${
+            section === "carousel" ? "bg-blue-600 text-white" : "bg-gray-200"
+          }`}
         >
           Carrusel inicio
         </button>
       </div>
 
-      {/* SECCIÓN COCHES */}
       {section === "cars" && (
         <>
           <button
@@ -93,17 +102,14 @@ export default function AdminPanel() {
                 setShowForm(true);
               }}
               onDelete={async (id) => {
-                if (confirm("¿Eliminar coche?")) {
-                  await deleteCar(id);
-                  loadCars();
-                }
+                await deleteCar(id);
+                loadCars();
               }}
             />
           )}
         </>
       )}
 
-      {/* SECCIÓN CARRUSEL */}
       {section === "carousel" && <CarouselAdmin />}
     </div>
   );

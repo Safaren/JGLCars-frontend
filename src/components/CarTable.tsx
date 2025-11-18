@@ -1,25 +1,14 @@
 "use client";
 
-import React from "react";
+import { Car } from "@/types";
 
-interface Car {
-  id: number;
-  marca: string;
-  model: string;
-  precio: number;
-  color: string;
-  imagenes?: { url: string }[];
+interface Props {
+  cars: Car[];
+  onEdit: (car: Car) => void;
+  onDelete: (id: number) => void;
 }
 
-export default function CarTable({
-  cars,
-  onEdit,
-  onDelete,
-}: {
-  cars: Car[];
-  onEdit: (c: Car) => void;
-  onDelete: (id: number) => void;
-}) {
+export default function CarTable({ cars, onEdit, onDelete }: Props) {
   return (
     <div className="overflow-x-auto bg-white rounded-lg shadow p-4">
       <table className="min-w-full divide-y divide-gray-200">
@@ -50,12 +39,17 @@ export default function CarTable({
                   </div>
                 )}
               </td>
+
               <td className="px-3 py-2">
                 <div className="font-semibold">{car.marca} {car.model}</div>
               </td>
-              <td className="px-3 py-2">{(car as any).anoFabricacion || "-"}</td>
+
+              <td className="px-3 py-2">{car.anoFabricacion || "-"}</td>
               <td className="px-3 py-2">{car.color}</td>
-              <td className="px-3 py-2 font-bold">{car.precio?.toLocaleString()} €</td>
+              <td className="px-3 py-2 font-bold">
+                {car.precio.toLocaleString()} €
+              </td>
+
               <td className="px-3 py-2">
                 <div className="flex gap-2">
                   <button
@@ -72,12 +66,12 @@ export default function CarTable({
                   </button>
                 </div>
               </td>
+
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Responsive: fallback lista en pantallas pequeñas */}
       {cars.length === 0 && (
         <p className="mt-4 text-center text-gray-500">No hay coches.</p>
       )}
