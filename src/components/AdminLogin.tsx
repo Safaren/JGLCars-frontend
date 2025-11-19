@@ -1,3 +1,6 @@
+
+// src/components/AdminLogin.tsx
+
 "use client";
 
 import { useState } from "react";
