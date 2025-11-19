@@ -1,8 +1,6 @@
-
-// src/app/login/page.tsx
-
 "use client";
 
+import * as React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -17,24 +15,24 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+      const res = await fetch(`/api/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
       const body = await res.json();
+
       if (!res.ok) {
         setError(body.error || "Error al iniciar sesión");
         return;
       }
 
-      // ✅ Guardar datos de usuario y CSRF token
       localStorage.setItem("user", JSON.stringify(body.user));
       localStorage.setItem("csrfToken", body.csrfToken);
 
-      if (body.user?.rol === "Admin" || body.user?.rol === "ADMIN") {
+      if (body.user?.rol?.toLowerCase() === "admin") {
         router.push("/admin");
       } else {
         router.push("/");
@@ -48,6 +46,7 @@ export default function LoginPage() {
   return (
     <div className="max-w-md mx-auto py-20">
       <h1 className="text-2xl font-bold mb-4 text-blue-700">Iniciar sesión</h1>
+
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow">
         <label className="block mb-1 text-gray-700">Email</label>
         <input

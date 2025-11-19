@@ -1,11 +1,12 @@
-// src/lib/api.ts
 "use client";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+// TODAS las peticiones irán por el reverse proxy
+// NUNCA usamos NEXT_PUBLIC_API_URL
+const API_BASE = "/api";
 
-// ============================================================================
+// ============================================================
 // CSRF TOKEN
-// ============================================================================
+// ============================================================
 let csrfToken: string | null = null;
 
 export function setCsrfToken(token: string) {
@@ -22,13 +23,13 @@ export function getCsrfHeader() {
   return csrfToken ? { "X-CSRF-Token": csrfToken } : {};
 }
 
-// ============================================================================
-// FETCH WITH REFRESH
-// ============================================================================
-export async function fetchWithRefresh(path: string, options: any = {}) {
-  const url = path.startsWith("http") ? path : `${API}${path}`;
+// ============================================================
+// FETCH WITH REFRESH (si expira accessToken)
+// ============================================================
+async function fetchWithBase(path: string, options: any = {}) {
+  const url = `${API_BASE}${path}`;
 
-  let res = await fetch(url, {
+  const res = await fetch(url, {
     ...options,
     credentials: "include",
     headers: {
@@ -37,10 +38,16 @@ export async function fetchWithRefresh(path: string, options: any = {}) {
     },
   });
 
+  return res;
+}
+
+export async function fetchWithRefresh(path: string, options: any = {}) {
+  let res = await fetchWithBase(path, options);
+
   if (res.status !== 401) return res;
 
   // REFRESH TOKEN
-  const refreshRes = await fetch(`${API}/auth/refresh`, {
+  const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
     method: "POST",
     credentials: "include",
   });
@@ -50,22 +57,14 @@ export async function fetchWithRefresh(path: string, options: any = {}) {
   const data = await refreshRes.json();
   if (data.csrfToken) setCsrfToken(data.csrfToken);
 
-  // REPETIR LA PETICIÓN
-  return fetch(url, {
-    ...options,
-    credentials: "include",
-    headers: {
-      ...(options.headers || {}),
-      ...getCsrfHeader(),
-    },
-  });
+  return fetchWithBase(path, options);
 }
 
-// ============================================================================
+// ============================================================
 // AUTENTICACIÓN
-// ============================================================================
+// ============================================================
 export async function login(email: string, password: string) {
-  const res = await fetch(`${API}/auth/login`, {
+  const res = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -73,22 +72,20 @@ export async function login(email: string, password: string) {
   });
 
   const data = await res.json();
-
   if (data.csrfToken) setCsrfToken(data.csrfToken);
-
   return data;
 }
 
 export async function logout() {
-  await fetch(`${API}/auth/logout`, {
+  await fetch(`${API_BASE}/auth/logout`, {
     method: "POST",
     credentials: "include",
   });
 }
 
-// ============================================================================
+// ============================================================
 // COCHES (ADMIN)
-// ============================================================================
+// ============================================================
 export async function getCars() {
   const res = await fetchWithRefresh(`/cars`);
   return res.json();
@@ -119,9 +116,14 @@ export async function deleteCar(id: number) {
   return res.json();
 }
 
-// ============================================================================
+// ============================================================
 // PIEZAS (ADMIN)
-// ============================================================================
+// ============================================================
+export async function getPiezas() {
+  const res = await fetchWithRefresh(`/piezas`);
+  return res.json();
+}
+
 export async function addPieza(data: any) {
   const res = await fetchWithRefresh(`/piezas`, {
     method: "POST",
@@ -147,43 +149,7 @@ export async function deletePieza(id: number) {
   return res.json();
 }
 
-
-//
-// ============================================================================
-// PIEZAS (ADMIN)
-// ============================================================================
-
-export async function getPiezas() {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/piezas`, {
-      credentials: "include",   // ← IMPORTANTE (envía cookies JWT)
-    });
-
-    if (!res.ok) {
-      console.error("❌ Error cargando piezas:", await res.text());
-      return []; // Siempre devolver array
-    }
-
-    const data = await res.json();
-
-    if (!Array.isArray(data)) {
-      console.error("❌ API devolvió algo que no es array:", data);
-      return [];
-    }
-
-    return data;
-  } catch (err) {
-    console.error("❌ Error en getPiezas:", err);
-    return []; // Evitar crashes
-  }
-}
-
-
 export async function getPieza(id: number) {
   const res = await fetchWithRefresh(`/piezas/${id}`);
   return res.json();
 }
-
-
-
-
