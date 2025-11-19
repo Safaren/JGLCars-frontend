@@ -1,3 +1,7 @@
+
+
+// JGLCars-frontend/src/components/CarForm.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -28,7 +32,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
   useEffect(() => {
     if (!initialData?.id) return;
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-car/${initialData.id}`)
+    fetch(`/api/fotos-car/${initialData.id}`)
       .then((r) => r.json())
       .then((res) => {
         if (Array.isArray(res)) setExistingFotos(res);

@@ -1,3 +1,6 @@
+
+// JGLCars-frontend/src/components/CarTable.tsx
+
 "use client";
 
 import { Car } from "@/types";
