@@ -1,7 +1,5 @@
 "use client";
 
-// TODAS las peticiones irán por el reverse proxy
-// NUNCA usamos NEXT_PUBLIC_API_URL
 const API_BASE = "/api";
 
 // ============================================================
@@ -24,12 +22,10 @@ export function getCsrfHeader() {
 }
 
 // ============================================================
-// FETCH WITH REFRESH (si expira accessToken)
+// FETCH BASE
 // ============================================================
-async function fetchWithBase(path: string, options: any = {}) {
-  const url = `${API_BASE}${path}`;
-
-  const res = await fetch(url, {
+async function fetchBase(path: string, options: any = {}) {
+  return fetch(`${API_BASE}${path}`, {
     ...options,
     credentials: "include",
     headers: {
@@ -37,16 +33,16 @@ async function fetchWithBase(path: string, options: any = {}) {
       ...getCsrfHeader(),
     },
   });
-
-  return res;
 }
 
+// ============================================================
+// FETCH WITH REFRESH
+// ============================================================
 export async function fetchWithRefresh(path: string, options: any = {}) {
-  let res = await fetchWithBase(path, options);
+  let res = await fetchBase(path, options);
 
   if (res.status !== 401) return res;
 
-  // REFRESH TOKEN
   const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
     method: "POST",
     credentials: "include",
@@ -57,11 +53,11 @@ export async function fetchWithRefresh(path: string, options: any = {}) {
   const data = await refreshRes.json();
   if (data.csrfToken) setCsrfToken(data.csrfToken);
 
-  return fetchWithBase(path, options);
+  return fetchBase(path, options);
 }
 
 // ============================================================
-// AUTENTICACIÓN
+// AUTH
 // ============================================================
 export async function login(email: string, password: string) {
   const res = await fetch(`${API_BASE}/auth/login`, {
@@ -73,6 +69,7 @@ export async function login(email: string, password: string) {
 
   const data = await res.json();
   if (data.csrfToken) setCsrfToken(data.csrfToken);
+
   return data;
 }
 
@@ -84,7 +81,7 @@ export async function logout() {
 }
 
 // ============================================================
-// COCHES (ADMIN)
+// COCHES
 // ============================================================
 export async function getCars() {
   const res = await fetchWithRefresh(`/cars`);
@@ -117,7 +114,7 @@ export async function deleteCar(id: number) {
 }
 
 // ============================================================
-// PIEZAS (ADMIN)
+// PIEZAS
 // ============================================================
 export async function getPiezas() {
   const res = await fetchWithRefresh(`/piezas`);

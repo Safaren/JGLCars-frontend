@@ -54,7 +54,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
     files.forEach((f) => formData.append("files", f));
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-car/${carId}`, {
+      await fetch(`/api/fotos-car/${carId}`, {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -94,7 +94,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
   const handleDeleteFoto = async (id: number) => {
     if (!confirm("¿Eliminar esta foto?")) return;
 
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fotos-car/${id}`, {
+    await fetch(`/api/fotos-car/${id}`, {
       method: "DELETE",
       credentials: "include",
     });
