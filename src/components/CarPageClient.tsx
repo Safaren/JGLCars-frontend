@@ -30,7 +30,7 @@ export default function CarPageClient({ id }: { id: string }) {
 
     const load = async () => {
       try {
-        const res = await fetch(`/api/cars/${id}`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${id}`);
 
         if (!res.ok) {
           setErr("No encontrado");
