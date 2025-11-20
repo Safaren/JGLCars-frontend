@@ -5,7 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 
 interface Car {
-  id: number;
+  id?: number | string;
+  _id?: string;
   marca: string;
   model: string;
   precio: number;
@@ -17,7 +18,14 @@ interface Car {
 
 export default function CarCard({ car }: { car: Car }) {
   const img = car.imagenes?.[0]?.url || "/no-image.jpg";
-console.log("API_URL =", process.env.NEXT_PUBLIC_API_URL);
+  const carId = car.id ?? car._id;
+
+  if (!carId) {
+    console.warn("CarCard: id no encontrado en el objeto car:", car);
+  }
+
+  const href = `/coches/${encodeURIComponent(String(carId ?? ""))}`;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -30,7 +38,7 @@ console.log("API_URL =", process.env.NEXT_PUBLIC_API_URL);
         transition cursor-pointer
       "
     >
-      <Link href={`/coches/${car.id}`}>
+      <Link href={href}>
         {/* IMAGEN */}
         <div className="relative w-full h-56 bg-gray-100">
           <Image
@@ -42,10 +50,12 @@ console.log("API_URL =", process.env.NEXT_PUBLIC_API_URL);
 
           {/* Etiqueta año */}
           {car.anoFabricacion && (
-            <span className="
-              absolute top-2 left-2 bg-blue-400/70 text-white 
-              px-3 py-1 rounded-full text-xs font-semibold
-            ">
+            <span
+              className="
+                absolute top-2 left-2 bg-blue-400/70 text-white 
+                px-3 py-1 rounded-full text-xs font-semibold
+              "
+            >
               {car.anoFabricacion}
             </span>
           )}

@@ -1,12 +1,11 @@
-
-// JGLCars-frontend/src/app/coches/[id]/page.tsx
+// src/app/coches/[id]/page.tsx
 
 import CarPageClient from "@/components/CarPageClient";
 
+export default async function CarPage({ params }: { params: Promise<{ id: string }> }) {
 
-
-export default function CarPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+  const { id } = await params;
 
   return <CarPageClient id={id} />;
 }
+
