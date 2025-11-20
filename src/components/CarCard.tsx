@@ -30,7 +30,7 @@ console.log("API_URL =", process.env.NEXT_PUBLIC_API_URL);
         transition cursor-pointer
       "
     >
-      <Link href={`admin/coches/${car.id}`}>
+      <Link href={`/coches/${car.id}`}>
         {/* IMAGEN */}
         <div className="relative w-full h-56 bg-gray-100">
           <Image
