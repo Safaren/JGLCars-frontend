@@ -43,7 +43,7 @@ console.log("API_URL =", process.env.NEXT_PUBLIC_API_URL);
           {/* Etiqueta año */}
           {car.anoFabricacion && (
             <span className="
-              absolute top-2 left-2 bg-black/70 text-white 
+              absolute top-2 left-2 bg-blue-400/70 text-white 
               px-3 py-1 rounded-full text-xs font-semibold
             ">
               {car.anoFabricacion}

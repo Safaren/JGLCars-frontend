@@ -29,18 +29,8 @@ export default function NavBar() {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await fetch(`/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch (e) {
-      console.error("Error cerrando sesión:", e);
-    }
-
     localStorage.removeItem("user");
-    localStorage.removeItem("csrfToken");
-    setUser(null);
+
     router.push("/login");
   };
 
