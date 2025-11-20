@@ -1,5 +1,3 @@
-// src/app/coches/[id]/CarPageClient.tsx  (o donde lo tengas ubicado)
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -31,34 +29,27 @@ export default function CarPageClient({ id }: { id: string }) {
     let mounted = true;
 
     const load = async () => {
-      setLoading(true);
-      setErr(null);
-
       try {
-        // Usamos ruta relativa para que pase por el proxy /api (si lo tienes configurado)
-        const res = await fetch(`/api/cars/${encodeURIComponent(id)}`);
-
-        if (res.status === 404) {
-          // redirigimos a la página 404 del sitio (cliente)
-          router.replace("/404");
-          return;
-        }
+        const res = await fetch(`/api/cars/${id}`);
 
         if (!res.ok) {
-          const text = await res.text();
-          console.error("Error fetching car:", res.status, text);
-          if (!mounted) return;
-          setErr("No se pudo cargar el coche. Intenta de nuevo.");
+          setErr("No encontrado");
           return;
         }
 
         const data = await res.json();
+
+        // 🔥 Controlamos datos corruptos
+        if (typeof data.anoFabricacion !== "number" || data.anoFabricacion < 1900) {
+          data.anoFabricacion = undefined;
+        }
+
         if (!mounted) return;
         setCar(data);
       } catch (error) {
-        console.error("Error cargando coche:", error);
+        console.error(error);
         if (!mounted) return;
-        setErr("Error de red al cargar el coche.");
+        setErr("Error cargando los datos");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -69,31 +60,18 @@ export default function CarPageClient({ id }: { id: string }) {
     return () => {
       mounted = false;
     };
-  }, [id, router]);
+  }, [id]);
 
   if (loading) {
-    return (
-      <div className="text-center text-gray-500 text-xl mt-20">
-        Cargando coche...
-      </div>
-    );
+    return <div className="text-center text-gray-500 text-xl mt-20">Cargando coche...</div>;
   }
 
   if (err) {
-    return (
-      <div className="text-center text-red-600 text-lg mt-20">
-        {err}
-      </div>
-    );
+    return <div className="text-center text-red-600 text-xl mt-20">{err}</div>;
   }
 
   if (!car) {
-    // Si no hay coche (y no se redirigió), mostramos mensaje
-    return (
-      <div className="text-center text-gray-500 text-xl mt-20">
-        Coche no encontrado.
-      </div>
-    );
+    return <div className="text-center text-gray-500 text-xl mt-20">Coche no encontrado.</div>;
   }
 
   const images = car.imagenes?.map((i) => i.url) || [];
@@ -104,12 +82,12 @@ export default function CarPageClient({ id }: { id: string }) {
 
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-10">
         <div>
-          <h1 className="text-4xl font-extrabold text-gray-800">
+          <h1 className="text-4xl font-extrabold">
             {car.marca} {car.model}
           </h1>
 
           <p className="text-blue-600 text-3xl font-bold mt-3">
-            {car.precio.toLocaleString()} €
+            {car.precio?.toLocaleString?.() ?? car.precio} €
           </p>
 
           <div className="mt-8 space-y-3">
@@ -125,11 +103,9 @@ export default function CarPageClient({ id }: { id: string }) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() =>
-              router.push(
-                `/contacto?mensaje=${encodeURIComponent(
-                  `Estoy interesado en el coche ${car.marca} ${car.model} (ID: ${car.id}).`
-                )}`
-              )
+              router.push(`/contacto?mensaje=${encodeURIComponent(
+                `Estoy interesado en el coche ${car.marca} ${car.model} (ID: ${car.id}).`
+              )}`)
             }
             className="mt-10 bg-blue-600 text-white text-xl px-8 py-3 rounded-xl shadow-lg hover:bg-blue-700 transition"
           >
@@ -139,13 +115,7 @@ export default function CarPageClient({ id }: { id: string }) {
 
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
           {images.slice(0, 8).map((img, i) => (
-            <img
-              key={i}
-              src={img}
-              alt={`${car.marca} ${car.model} foto ${i + 1}`}
-              className="rounded-lg object-cover w-full h-28 border shadow-sm"
-              loading="lazy"
-            />
+            <img key={i} src={img} className="rounded-lg object-cover w-full h-28 border shadow-sm" />
           ))}
         </div>
       </div>

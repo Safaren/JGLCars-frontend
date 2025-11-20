@@ -1,4 +1,5 @@
-// JGLCars-frontend/src/app/admin/coches/[id]/page.tsx
+
+// JGLCars-frontend/src/app/coches/[id]/page.tsx
 
 import CarPageClient from "./CarPageClient";
 
