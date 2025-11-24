@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { Car } from "@/types/prisma-types";
+import { CarForFrontend } from "@/types/CarForFrontend";
 
 /* interface Car {
   id?: number | string;
@@ -17,7 +18,7 @@ import { Car } from "@/types/prisma-types";
   imagenes?: { url: string }[];
 } */
 
-export default function CarCard({ car }: { car: Partial<Car> }) {
+export default function CarCard({ car }: { car: CarForFrontend  }) {
   const img = car.imagenes?.[0]?.url || "/no-image.jpg";
   const carId = car.id ?? car.id;
 
