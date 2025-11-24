@@ -14,39 +14,49 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      //const res = await fetch(`/api/auth/login`, {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",   
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        credentials: "include", // <-- IMPORTANTE: permite cookies / credenciales
         body: JSON.stringify({ email, password }),
       });
 
       const body = await res.json();
       console.log("RESPUESTA LOGIN --->", body);
 
-
       if (!res.ok) {
-        setError(body.error || "Error al iniciar sesión");
+        setError(body.error || body.message || "Error al iniciar sesión");
         return;
       }
 
-      // 🎯 IMPORTANTE: GUARDAR TOKEN
-      if (body.token) {
-        localStorage.setItem("token", body.token);
+      // Guardar token: soportamos tanto accessToken como token
+      const token = body.accessToken ?? body.token;
+      if (token) {
+        localStorage.setItem("token", token);
+        console.log("Token guardado en localStorage");
+      } else {
+        console.warn("ATENCIÓN: La respuesta no contiene token/accessToken");
       }
 
-      // 🎯 Guardar usuario
-      localStorage.setItem("user", JSON.stringify(body.user));
+      // Guardar usuario (si viene)
+      if (body.user) {
+        localStorage.setItem("user", JSON.stringify(body.user));
+      } else if (body.userData) {
+        localStorage.setItem("user", JSON.stringify(body.userData));
+      } else {
+        console.warn("ATENCIÓN: La respuesta no contiene user");
+      }
 
-      // Redirección según rol
-      if (body.user.rol.toLowerCase() === "admin") {
+      // Redirección según rol (protegemos con comprobaciones)
+      const savedUserRaw = localStorage.getItem("user");
+      const savedUser = savedUserRaw ? JSON.parse(savedUserRaw) : null;
+      if (savedUser?.rol && savedUser.rol.toLowerCase() === "admin") {
         router.push("/admin");
       } else {
         router.push("/");
       }
     } catch (err) {
-      console.error(err);
+      console.error("LOGIN ERROR:", err);
       setError("Error de conexión");
     }
   };
