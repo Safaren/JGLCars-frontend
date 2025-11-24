@@ -31,8 +31,8 @@ export default function LoginPage() {
       }
 
       // 🎯 IMPORTANTE: GUARDAR TOKEN
-      if (body.accessToken) {
-        localStorage.setItem("token", body.accessToken);
+      if (body.token) {
+        localStorage.setItem("token", body.token);
       }
 
       // 🎯 Guardar usuario
