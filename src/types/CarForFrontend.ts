@@ -2,11 +2,12 @@ import type { Car } from "@/types/prisma-types";
 
 /**
  * Tipo seguro para FRONTEND:
- * - Omitimos "imagenes" del tipo Prisma (porque no coincide)
+ * - Omitimos "imagenes" del tipo Prisma porque no coincide
  * - Convertimos TODO lo demás en opcional
- * - Sobrescribimos "imagenes" con el formato real de la API
+ * - Añadimos imagenes simplificadas
+ * - REDEFINIMOS tipoVenta como enum seguro
  */
-export type CarForFrontend = Partial<Omit<Car, "imagenes">> & {
+export type CarForFrontend = Partial<Omit<Car, "imagenes" | "tipoVenta">> & {
   imagenes?: { url: string }[];
+  tipoVenta?: "COCHE" | "PIEZAS" | null;
 };
-
