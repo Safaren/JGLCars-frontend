@@ -68,7 +68,7 @@ export default function CarCarousel({
 
   // Click → abrir página del coche
   const openCar = () => {
-    if (carId) router.push(`/admin/coches/${carId}`);
+    if (carId) router.push(`/admin${carId}`);
   };
 
   if (images.length === 0) {

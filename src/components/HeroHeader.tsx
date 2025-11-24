@@ -33,7 +33,7 @@ export default function HeroHeader({ images }: { images: string[] }) {
           </p>
 
           <motion.a
-            href="admin/coches"
+            href="admin"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
             className="
