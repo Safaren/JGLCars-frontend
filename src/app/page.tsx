@@ -7,11 +7,12 @@ import CarCard from "@/components/CarCard";
 import CarCarousel from "@/components/CarCarousel";
 import { getCars } from "@/lib/api";
 import { Car } from "@/types";
+import { CarForFrontend } from "@/types/CarForFrontend";
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  const [cars, setCars] = useState<Car[]>([]);
+  const [cars, setCars] = useState<CarForFrontend[]>([]);
   const [currentCarIndex, setCurrentCarIndex] = useState(0);
   const [carouselImages, setCarouselImages] = useState<string[]>([]);
 

@@ -5,21 +5,13 @@
 import { useEffect, useState } from "react";
 import CarCard from "@/components/CarCard";
 import { motion } from "framer-motion";
+import { CarForFrontend } from "@/types/CarForFrontend";
 
-interface Car {
-  id: number;
-  marca: string;
-  model: string;
-  precio: number;
-  combustible: string;
-  color: string;
-  anoFabricacion: number;
-  imagenes?: { url: string }[];
-}
+
 
 export default function CochesPage() {
-  const [cars, setCars] = useState<Car[]>([]);
-  const [filtered, setFiltered] = useState<Car[]>([]);
+  const [cars, setCars] = useState<CarForFrontend[]>([]);
+  const [filtered, setFiltered] = useState<CarForFrontend[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filtros
