@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { Car } from "@/types/prisma-types";
+
 
 interface Props {
   initialData?: any;

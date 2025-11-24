@@ -3,9 +3,9 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { Car } from "@/types/Car";
+import { Car } from "@/types/prisma-types";
 
-interface Car {
+/* interface Car {
   id?: number | string;
   _id?: string;
   marca: string;
@@ -15,7 +15,7 @@ interface Car {
   anoFabricacion?: number;
   combustible?: string;
   imagenes?: { url: string }[];
-}
+} */
 
 export default function CarCard({ car }: { car: Car }) {
   const img = car.imagenes?.[0]?.url || "/no-image.jpg";

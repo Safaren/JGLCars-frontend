@@ -25,6 +25,8 @@ export default function AdminPage() {
   const [cars, setCars] = useState<Car[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState<Car | null>(null);
+  
+
 
   // ===============================
   // 🔐 SEGURIDAD BÁSICA

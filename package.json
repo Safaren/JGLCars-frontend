@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+     "generate:types": "node scripts/generatePrismaTypes.js"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.17",
