@@ -12,7 +12,7 @@ import CarouselAdmin from "@/components/CarouselAdmin";
 import { getCars, addCar, updateCar, deleteCar } from "@/lib/api";
 
 import { CarForFrontend } from "@/types/CarForFrontend";
-import { CarInput } from "@/types"; // si existe CarInput, mantenerlo
+import { CarInput } from "@/types";
 
 import toast from "react-hot-toast";
 
@@ -28,64 +28,63 @@ export default function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState<CarForFrontend | null>(null);
 
-  // ========================================
-  // 🔧 Normalizar coche al formato frontend
-  // ========================================
+  // =====================================================
+  // 🔧 Sanitizar coche para tipado frontend
+  // =====================================================
   const sanitizeCar = (car: any): CarForFrontend => ({
     ...car,
 
-    // imagenes → solo urls
+    // Imagenes al formato real del frontend
     imagenes: Array.isArray(car.imagenes)
       ? car.imagenes.map((i: any) => ({ url: i.url }))
       : [],
 
-    // tipoVenta → asegurar ENUM correcto
+    // Normalización del enum tipoVenta
     tipoVenta:
       car.tipoVenta === "COCHE" || car.tipoVenta === "PIEZAS"
         ? car.tipoVenta
         : "COCHE",
   });
 
-  // ========================================
+  // =====================================================
   // 🔐 SEGURIDAD
-  // ========================================
+  // =====================================================
   useEffect(() => {
     try {
       const token = localStorage.getItem("token");
-      const saved = localStorage.getItem("user");
+      const savedUser = localStorage.getItem("user");
 
-      if (!token || !saved) {
+      if (!token || !savedUser) {
         setAllowed(false);
         return;
       }
 
-      const parsed = JSON.parse(saved);
+      const parsedUser = JSON.parse(savedUser);
 
-      if (parsed.rol?.toLowerCase() !== "admin") {
+      if (parsedUser.rol?.toLowerCase() !== "admin") {
         setAllowed(false);
         return;
       }
 
-      setUser(parsed);
+      setUser(parsedUser);
       setAllowed(true);
     } catch {
       setAllowed(false);
     }
   }, []);
 
-  // ========================================
-  // 🚗 CARGAR COCHES
-  // ========================================
+  // =====================================================
+  // 🚗 CARGA DE COCHES
+  // =====================================================
   const loadCars = async () => {
     try {
       const data = await getCars();
 
-      // Convertir TODOS los coches recibidos
-      const safeCars = Array.isArray(data)
-        ? data.map((c) => sanitizeCar(c))
+      const sanitized = Array.isArray(data)
+        ? data.map((car) => sanitizeCar(car))
         : [];
 
-      setCars(safeCars);
+      setCars(sanitized);
     } catch (err) {
       console.error("❌ Error cargando coches:", err);
       setCars([]);
@@ -96,9 +95,9 @@ export default function AdminPage() {
     if (allowed) loadCars();
   }, [allowed]);
 
-  // ========================================
+  // =====================================================
   // 💾 GUARDAR / EDITAR
-  // ========================================
+  // =====================================================
   const handleSaveCar = async (data: CarInput) => {
     try {
       let result;
@@ -109,14 +108,12 @@ export default function AdminPage() {
         result = await addCar(data);
       }
 
-      console.log("🟩 handleSaveCar: result =", result);
-
       toast.success("Coche guardado correctamente 🚗✨");
 
       return result;
     } catch (err) {
       console.error("❌ Error guardando coche:", err);
-      alert("Error: No se pudo guardar el coche.");
+      alert("No se pudo guardar el coche.");
       return null;
     }
   };
@@ -127,9 +124,9 @@ export default function AdminPage() {
     loadCars();
   };
 
-  // ========================================
+  // =====================================================
   // 🔐 ACCESO
-  // ========================================
+  // =====================================================
   if (allowed === null) {
     return <p className="p-6 text-gray-500">Cargando...</p>;
   }
@@ -152,14 +149,17 @@ export default function AdminPage() {
     );
   }
 
-  // ========================================
-  // 🖥️ PANEL ADMIN
-  // ========================================
+  // =====================================================
+  // 🖥️ PANEL ADMINISTRACIÓN
+  // =====================================================
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      {/* Header */}
+
+      {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-blue-700">Panel de administración</h1>
+        <h1 className="text-3xl font-bold text-blue-700">
+          Panel de administración
+        </h1>
 
         <button
           className="bg-red-600 text-white px-4 py-2 rounded-lg"
@@ -173,7 +173,7 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* Secciones */}
+      {/* NAV */}
       <div className="flex gap-4 mb-8">
         <button
           onClick={() => setSection("cars")}
@@ -198,7 +198,7 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* Gestión de coches */}
+      {/* SECCIÓN COCHES */}
       {section === "cars" && (
         <>
           <button
@@ -233,6 +233,7 @@ export default function AdminPage() {
         </>
       )}
 
+      {/* SECCIÓN CAROUSEL */}
       {section === "carousel" && <CarouselAdmin />}
     </div>
   );

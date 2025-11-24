@@ -5,11 +5,14 @@ import toast from "react-hot-toast";
 import { CarForFrontend } from "@/types/CarForFrontend";
 import { useRouter } from "next/navigation";
 
+import type { CarInput } from "@/types";
+
 interface Props {
   initialData?: CarForFrontend | null;
-  onSave: (data: Partial<CarForFrontend>) => Promise<any>;
+  onSave: (data: CarInput) => Promise<any>;
   onCancel: () => void;
 }
+
 
 export default function CarForm({ initialData, onSave, onCancel }: Props) {
   const router = useRouter();
@@ -78,14 +81,16 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    const carData: Partial<CarForFrontend> = {
-      marca,
-      model,
-      precio: precio ? Number(precio) : null,
-      combustible,
-      anoFabricacion: anoFabricacion ? Number(anoFabricacion) : null,
-      color,
-    };
+const carData: CarInput = {
+  marca,
+  model,
+  precio: Number(precio),
+  combustible,
+  anoFabricacion: Number(anoFabricacion),
+  color,
+};
+
+
 
     const saved = await onSave(carData);
 

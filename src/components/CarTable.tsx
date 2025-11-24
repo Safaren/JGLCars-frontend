@@ -1,13 +1,12 @@
-
 // JGLCars-frontend/src/components/CarTable.tsx
 
 "use client";
 
-import { Car } from "@/types";
+import { CarForFrontend } from "@/types/CarForFrontend";
 
 interface Props {
-  cars: Car[];
-  onEdit: (car: Car) => void;
+  cars: CarForFrontend[];
+  onEdit: (car: CarForFrontend) => void;
   onDelete: (id: number) => void;
 }
 
@@ -28,12 +27,12 @@ export default function CarTable({ cars, onEdit, onDelete }: Props) {
 
         <tbody className="divide-y divide-gray-100">
           {cars.map((car) => (
-            <tr key={car.id} className="hover:bg-gray-50">
+            <tr key={car.id ?? Math.random()} className="hover:bg-gray-50">
               <td className="px-3 py-2 w-24">
-                {car.imagenes?.[0] ? (
+                {car.imagenes?.[0]?.url ? (
                   <img
                     src={car.imagenes[0].url}
-                    alt={`${car.marca} ${car.model}`}
+                    alt={`${car.marca ?? ""} ${car.model ?? ""}`}
                     className="w-20 h-14 object-cover rounded"
                   />
                 ) : (
@@ -44,13 +43,19 @@ export default function CarTable({ cars, onEdit, onDelete }: Props) {
               </td>
 
               <td className="px-3 py-2">
-                <div className="font-semibold">{car.marca} {car.model}</div>
+                <div className="font-semibold">
+                  {car.marca ?? "—"} {car.model ?? ""}
+                </div>
               </td>
 
-              <td className="px-3 py-2">{car.anoFabricacion || "-"}</td>
-              <td className="px-3 py-2">{car.color}</td>
+              <td className="px-3 py-2">{car.anoFabricacion ?? "-"}</td>
+              <td className="px-3 py-2">{car.color ?? "-"}</td>
+
               <td className="px-3 py-2 font-bold">
-                {car.precio.toLocaleString()} €
+                {typeof car.precio === "number"
+                  ? car.precio.toLocaleString()
+                  : "—"}{" "}
+                €
               </td>
 
               <td className="px-3 py-2">
@@ -61,8 +66,9 @@ export default function CarTable({ cars, onEdit, onDelete }: Props) {
                   >
                     Editar
                   </button>
+
                   <button
-                    onClick={() => onDelete(car.id)}
+                    onClick={() => onDelete(car.id!)}
                     className="px-3 py-1 rounded bg-red-600 text-white text-sm hover:brightness-90"
                   >
                     Borrar
