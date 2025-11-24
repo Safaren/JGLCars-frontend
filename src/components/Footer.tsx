@@ -35,11 +35,11 @@ export default function Footer() {
           <ul className="space-y-3">
             <li className="flex items-center gap-3">
               <FaPhoneAlt className="text-blue-500" />
-              <span>+34 612 345 678</span>
+              <span>+34 621 630 342</span>
             </li>
             <li className="flex items-center gap-3">
               <FaEnvelope className="text-blue-500" />
-              <span>info@jlgcars.com</span>
+              <span>jlgcars@gmail.com</span>
             </li>
             <li className="flex items-center gap-3">
               <FaMapMarkerAlt className="text-blue-500" />
