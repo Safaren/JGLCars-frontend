@@ -1,13 +1,9 @@
-// src/app/admin/coches/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
 import CarCard from "@/components/CarCard";
 import { motion } from "framer-motion";
 import { CarForFrontend } from "@/types/CarForFrontend";
-
-
 
 export default function CochesPage() {
   const [cars, setCars] = useState<CarForFrontend[]>([]);
@@ -20,71 +16,84 @@ export default function CochesPage() {
   const [combustibleFilter, setCombustibleFilter] = useState("");
   const [maxPrecio, setMaxPrecio] = useState<number | null>(null);
 
- useEffect(() => {
-  const load = async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars`, {
-        credentials: "include", // ⬅️ NECESARIO PARA ENVIAR LA COOKIE DEL TOKEN
-      });
+  // Cargar coches
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars`, {
+          credentials: "include",
+        });
 
-      if (!res.ok) {
-        console.error("❌ Error HTTP:", res.status);
-        setCars([]);
-        setFiltered([]);
-        return;
+        if (!res.ok) {
+          console.error("❌ Error HTTP:", res.status);
+          setCars([]);
+          setFiltered([]);
+          return;
+        }
+
+        const data = await res.json();
+
+        if (!Array.isArray(data)) {
+          console.error("❌ El backend devolvió un objeto, no un array:", data);
+          setCars([]);
+          setFiltered([]);
+          return;
+        }
+
+        setCars(data);
+        setFiltered(data);
+      } catch (error) {
+        console.error("Error cargando coches:", error);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const data = await res.json();
-
-      if (!Array.isArray(data)) {
-        console.error("❌ El backend devolvió un objeto, no un array:", data);
-        setCars([]);
-        setFiltered([]);
-        return;
-      }
-
-      setCars(data);
-      setFiltered(data);
-    } catch (error) {
-      console.error("Error cargando coches:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  load();
-}, []);
-
+    load();
+  }, []);
 
   // Aplicar filtros
   useEffect(() => {
     let res = [...cars];
 
+    // Buscar por marca o modelo
     if (search.trim() !== "") {
       res = res.filter((c) =>
-        `${c.marca} ${c.model}`.toLowerCase().includes(search.toLowerCase())
+        `${c.marca ?? ""} ${c.model ?? ""}`
+          .toLowerCase()
+          .includes(search.toLowerCase())
       );
     }
 
+    // Filtrar marca
     if (marcaFilter !== "") {
-      res = res.filter((c) => c.marca === marcaFilter);
+      res = res.filter((c) => (c.marca ?? "") === marcaFilter);
     }
 
+    // Filtro combustible
     if (combustibleFilter !== "") {
-      res = res.filter((c) => c.combustible === combustibleFilter);
+      res = res.filter((c) => (c.combustible ?? "") === combustibleFilter);
     }
 
-  if (maxPrecio !== null && maxPrecio > 0) {
-  res = res.filter((c) => typeof c.precio === "number" && c.precio <= maxPrecio);
-}
-
+    // Filtro precio
+    if (maxPrecio !== null && maxPrecio > 0) {
+      res = res.filter(
+        (c) => typeof c.precio === "number" && c.precio <= maxPrecio
+      );
+    }
 
     setFiltered(res);
   }, [search, marcaFilter, combustibleFilter, maxPrecio, cars]);
 
-  // --- MARCAS ÚNICAS ---
-  const marcas = Array.from(new Set(cars.map((c) => c.marca)));
-  const combustibles = Array.from(new Set(cars.map((c) => c.combustible)));
+  // MARCAS SEGURAS
+  const marcas = Array.from(
+    new Set(cars.map((c) => c.marca ?? "Sin marca"))
+  );
+
+  // COMBUSTIBLES SEGUROS
+  const combustibles = Array.from(
+    new Set(cars.map((c) => c.combustible ?? ""))
+  );
 
   return (
     <section className="max-w-7xl mx-auto px-6 mt-20 mb-32">
@@ -141,14 +150,14 @@ export default function CochesPage() {
           type="number"
           placeholder="Precio máximo (€)"
           className="border rounded-xl p-3 w-full"
-          value={maxPrecio || ""}
+          value={maxPrecio ?? ""}
           onChange={(e) =>
             setMaxPrecio(e.target.value ? Number(e.target.value) : null)
           }
         />
       </div>
 
-      {/* LOADING SKELETON */}
+      {/* LOADING */}
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -160,14 +169,14 @@ export default function CochesPage() {
         </div>
       )}
 
-      {/* RESULTADOS */}
+      {/* SIN RESULTADOS */}
       {!loading && filtered.length === 0 && (
         <p className="text-center text-xl text-gray-600 mt-20">
           No se encontraron coches con esos filtros.
         </p>
       )}
 
-      {/* GRID DE COCHES */}
+      {/* GRID */}
       <motion.div
         layout
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10"

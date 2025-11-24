@@ -3,30 +3,17 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { Car } from "@/types/prisma-types";
 import { CarForFrontend } from "@/types/CarForFrontend";
 
-/* interface Car {
-  id?: number | string;
-  _id?: string;
-  marca: string;
-  model: string;
-  precio: number;
-  color: string;
-  anoFabricacion?: number;
-  combustible?: string;
-  imagenes?: { url: string }[];
-} */
-
-export default function CarCard({ car }: { car: CarForFrontend  }) {
+export default function CarCard({ car }: { car: CarForFrontend }) {
+  // Imagen de portada
   const img = car.imagenes?.[0]?.url || "/no-image.jpg";
-  const carId = car.id ?? car.id;
 
-  if (!carId) {
-    console.warn("CarCard: id no encontrado en el objeto car:", car);
-  }
+  // ID seguro
+  const carId = car.id ? String(car.id) : "";
 
-  const href = `/coches/${encodeURIComponent(String(carId ?? ""))}`;
+  // Link seguro
+  const href = `/coches/${encodeURIComponent(carId)}`;
 
   return (
     <motion.div
@@ -45,12 +32,12 @@ export default function CarCard({ car }: { car: CarForFrontend  }) {
         <div className="relative w-full h-56 bg-gray-100">
           <Image
             src={img}
-            alt={`${car.marca} ${car.model}`}
+            alt={`${car.marca ?? ""} ${car.model ?? ""}`}
             fill
             className="object-cover"
           />
 
-          {/* Etiqueta año */}
+          {/* Año fabricación */}
           {car.anoFabricacion && (
             <span
               className="
@@ -66,11 +53,11 @@ export default function CarCard({ car }: { car: CarForFrontend  }) {
         {/* INFO */}
         <div className="p-4 space-y-1">
           <h3 className="text-lg font-bold text-gray-800">
-            {car.marca} {car.model}
+            {car.marca ?? ""} {car.model ?? ""}
           </h3>
 
           <p className="text-gray-500 text-sm">
-            Color: <span className="text-gray-700">{car.color}</span>
+            Color: <span className="text-gray-700">{car.color ?? "N/A"}</span>
           </p>
 
           {car.combustible && (
@@ -82,7 +69,10 @@ export default function CarCard({ car }: { car: CarForFrontend  }) {
 
           {/* PRECIO */}
           <p className="text-blue-600 font-bold text-xl mt-2">
-            {car.precio.toLocaleString()} €
+            {typeof car.precio === "number"
+              ? car.precio.toLocaleString()
+              : "—"}{" "}
+            €
           </p>
         </div>
 
