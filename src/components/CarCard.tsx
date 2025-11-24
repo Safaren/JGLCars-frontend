@@ -17,9 +17,9 @@ import { Car } from "@/types/prisma-types";
   imagenes?: { url: string }[];
 } */
 
-export default function CarCard({ car }: { car: Car }) {
+export default function CarCard({ car }: { car: Partial<Car> }) {
   const img = car.imagenes?.[0]?.url || "/no-image.jpg";
-  const carId = car.id ?? car._id;
+  const carId = car.id ?? car.id;
 
   if (!carId) {
     console.warn("CarCard: id no encontrado en el objeto car:", car);
