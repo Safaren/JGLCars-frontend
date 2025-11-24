@@ -28,27 +28,17 @@ export default function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState<CarForFrontend | null>(null);
 
-  // =====================================================
-  // 🔧 Sanitizar coche para tipado frontend
-  // =====================================================
   const sanitizeCar = (car: any): CarForFrontend => ({
     ...car,
-
-    // Imagenes al formato real del frontend
     imagenes: Array.isArray(car.imagenes)
       ? car.imagenes.map((i: any) => ({ url: i.url }))
       : [],
-
-    // Normalización del enum tipoVenta
     tipoVenta:
       car.tipoVenta === "COCHE" || car.tipoVenta === "PIEZAS"
         ? car.tipoVenta
         : "COCHE",
   });
 
-  // =====================================================
-  // 🔐 SEGURIDAD
-  // =====================================================
   useEffect(() => {
     try {
       const token = localStorage.getItem("token");
@@ -73,9 +63,6 @@ export default function AdminPage() {
     }
   }, []);
 
-  // =====================================================
-  // 🚗 CARGA DE COCHES
-  // =====================================================
   const loadCars = async () => {
     try {
       const data = await getCars();
@@ -95,9 +82,6 @@ export default function AdminPage() {
     if (allowed) loadCars();
   }, [allowed]);
 
-  // =====================================================
-  // 💾 GUARDAR / EDITAR
-  // =====================================================
   const handleSaveCar = async (data: CarInput) => {
     try {
       let result;
@@ -122,11 +106,9 @@ export default function AdminPage() {
     setShowForm(false);
     setEditingCar(null);
     loadCars();
+    router.push("/admin"); // <-- 🔥 IMPORTANTE: FORZAMOS /admin
   };
 
-  // =====================================================
-  // 🔐 ACCESO
-  // =====================================================
   if (allowed === null) {
     return <p className="p-6 text-gray-500">Cargando...</p>;
   }
@@ -137,7 +119,9 @@ export default function AdminPage() {
         <h2 className="text-2xl text-red-600 font-bold mb-2">
           ⚠ Acceso restringido
         </h2>
-        <p className="text-gray-700">Esta sección es solo para administradores.</p>
+        <p className="text-gray-700">
+          Esta sección es solo para administradores.
+        </p>
 
         <button
           className="mt-6 bg-blue-600 text-white px-4 py-2 rounded"
@@ -149,13 +133,9 @@ export default function AdminPage() {
     );
   }
 
-  // =====================================================
-  // 🖥️ PANEL ADMINISTRACIÓN
-  // =====================================================
   return (
     <div className="p-6 max-w-6xl mx-auto">
 
-      {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-blue-700">
           Panel de administración
@@ -173,7 +153,6 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* NAV */}
       <div className="flex gap-4 mb-8">
         <button
           onClick={() => setSection("cars")}
@@ -198,7 +177,6 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* SECCIÓN COCHES */}
       {section === "cars" && (
         <>
           <button
@@ -233,7 +211,6 @@ export default function AdminPage() {
         </>
       )}
 
-      {/* SECCIÓN CAROUSEL */}
       {section === "carousel" && <CarouselAdmin />}
     </div>
   );
