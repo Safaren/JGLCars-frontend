@@ -1,6 +1,7 @@
-import { Car } from "@/types/prisma-types";
+import type { Car } from "@/types/prisma-types";
 
-// Sobrescribimos el tipo de "imagenes"
-export type CarForFrontend = Omit<Car, "imagenes"> & {
+// Un Car que viene de la API puede traer solo algunos campos,
+// así que hacemos TODAS las propiedades opcionales.
+export type CarForFrontend = Partial<Car> & {
   imagenes?: { url: string }[];
 };
