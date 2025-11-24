@@ -16,6 +16,16 @@ export default function CochesPage() {
   const [combustibleFilter, setCombustibleFilter] = useState("");
   const [maxPrecio, setMaxPrecio] = useState<number | null>(null);
 
+  const sanitizeCar = (car: any): CarForFrontend => ({
+  ...car,
+  tipoVenta:
+    car.tipoVenta === "COCHE" || car.tipoVenta === "PIEZAS"
+      ? car.tipoVenta
+      : "COCHE", // valor por defecto que quieres
+  imagenes: car.imagenes?.map((i: any) => ({ url: i.url })) ?? [],
+});
+
+
   // Cargar coches
   useEffect(() => {
     const load = async () => {

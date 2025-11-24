@@ -10,7 +10,9 @@ import CarTable from "@/components/CarTable";
 import CarouselAdmin from "@/components/CarouselAdmin";
 
 import { getCars, addCar, updateCar, deleteCar } from "@/lib/api";
-import { Car, CarInput } from "@/types";
+
+import { CarForFrontend } from "@/types/CarForFrontend";
+import { CarInput } from "@/types"; // si existe CarInput, mantenerlo
 
 import toast from "react-hot-toast";
 
@@ -22,15 +24,31 @@ export default function AdminPage() {
 
   const [section, setSection] = useState<"cars" | "carousel">("cars");
 
-  const [cars, setCars] = useState<Car[]>([]);
+  const [cars, setCars] = useState<CarForFrontend[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingCar, setEditingCar] = useState<Car | null>(null);
-  
+  const [editingCar, setEditingCar] = useState<CarForFrontend | null>(null);
 
+  // ========================================
+  // 🔧 Normalizar coche al formato frontend
+  // ========================================
+  const sanitizeCar = (car: any): CarForFrontend => ({
+    ...car,
 
-  // ===============================
-  // 🔐 SEGURIDAD BÁSICA
-  // ===============================
+    // imagenes → solo urls
+    imagenes: Array.isArray(car.imagenes)
+      ? car.imagenes.map((i: any) => ({ url: i.url }))
+      : [],
+
+    // tipoVenta → asegurar ENUM correcto
+    tipoVenta:
+      car.tipoVenta === "COCHE" || car.tipoVenta === "PIEZAS"
+        ? car.tipoVenta
+        : "COCHE",
+  });
+
+  // ========================================
+  // 🔐 SEGURIDAD
+  // ========================================
   useEffect(() => {
     try {
       const token = localStorage.getItem("token");
@@ -50,19 +68,24 @@ export default function AdminPage() {
 
       setUser(parsed);
       setAllowed(true);
-
     } catch {
       setAllowed(false);
     }
   }, []);
 
-  // ===============================
+  // ========================================
   // 🚗 CARGAR COCHES
-  // ===============================
+  // ========================================
   const loadCars = async () => {
     try {
       const data = await getCars();
-      setCars(data);
+
+      // Convertir TODOS los coches recibidos
+      const safeCars = Array.isArray(data)
+        ? data.map((c) => sanitizeCar(c))
+        : [];
+
+      setCars(safeCars);
     } catch (err) {
       console.error("❌ Error cargando coches:", err);
       setCars([]);
@@ -73,35 +96,40 @@ export default function AdminPage() {
     if (allowed) loadCars();
   }, [allowed]);
 
-  // ===============================
+  // ========================================
   // 💾 GUARDAR / EDITAR
-  // ===============================
-const handleSaveCar = async (data: CarInput) => {
-  try {
-    let result;
+  // ========================================
+  const handleSaveCar = async (data: CarInput) => {
+    try {
+      let result;
 
-    if (editingCar) {
-      result = await updateCar(editingCar.id, data);
-    } else {
-      result = await addCar(data);
+      if (editingCar) {
+        result = await updateCar(editingCar.id!, data);
+      } else {
+        result = await addCar(data);
+      }
+
+      console.log("🟩 handleSaveCar: result =", result);
+
+      toast.success("Coche guardado correctamente 🚗✨");
+
+      return result;
+    } catch (err) {
+      console.error("❌ Error guardando coche:", err);
+      alert("Error: No se pudo guardar el coche.");
+      return null;
     }
+  };
 
-    console.log("🟩 handleSaveCar: result =", result);
-    toast.success("Coche guardado correctamente 🚗✨");
+  const volverALista = () => {
+    setShowForm(false);
+    setEditingCar(null);
+    loadCars();
+  };
 
-    return result;
-
-  } catch (err) {
-    console.error("❌ Error guardando coche:", err);
-    alert("Error: No se pudo guardar el coche.");
-    return null;
-  }
-};
-
-
-  // ===============================
-  // ACCESO
-  // ===============================
+  // ========================================
+  // 🔐 ACCESO
+  // ========================================
   if (allowed === null) {
     return <p className="p-6 text-gray-500">Cargando...</p>;
   }
@@ -112,9 +140,7 @@ const handleSaveCar = async (data: CarInput) => {
         <h2 className="text-2xl text-red-600 font-bold mb-2">
           ⚠ Acceso restringido
         </h2>
-        <p className="text-gray-700">
-          Esta sección es solo para administradores.
-        </p>
+        <p className="text-gray-700">Esta sección es solo para administradores.</p>
 
         <button
           className="mt-6 bg-blue-600 text-white px-4 py-2 rounded"
@@ -125,27 +151,21 @@ const handleSaveCar = async (data: CarInput) => {
       </div>
     );
   }
-  const volverALista = () => {
-  setShowForm(false);
-  setEditingCar(null);
-  loadCars();
-};
 
-  // ===============================
-  // PANEL ADMIN
-  // ===============================
+  // ========================================
+  // 🖥️ PANEL ADMIN
+  // ========================================
   return (
     <div className="p-6 max-w-6xl mx-auto">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-blue-700">
-          Panel de administración
-        </h1>
+        <h1 className="text-3xl font-bold text-blue-700">Panel de administración</h1>
 
         <button
           className="bg-red-600 text-white px-4 py-2 rounded-lg"
           onClick={() => {
             localStorage.removeItem("user");
-            localStorage.removeItem("token");  // 🟦 Importantísimo
+            localStorage.removeItem("token");
             router.push("/login");
           }}
         >
@@ -193,15 +213,15 @@ const handleSaveCar = async (data: CarInput) => {
 
           {showForm ? (
             <CarForm
-            initialData={editingCar ?? undefined}
-            onSave={handleSaveCar}
-            onCancel={volverALista}
+              initialData={editingCar ? sanitizeCar(editingCar) : undefined}
+              onSave={handleSaveCar}
+              onCancel={volverALista}
             />
           ) : (
             <CarTable
               cars={cars}
               onEdit={(car) => {
-                setEditingCar(car);
+                setEditingCar(sanitizeCar(car));
                 setShowForm(true);
               }}
               onDelete={async (id) => {
