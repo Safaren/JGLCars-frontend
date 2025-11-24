@@ -1,10 +1,8 @@
-
-
-// JGLCars-frontend/src/components/CarForm.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 interface Props {
   initialData?: any;
@@ -13,220 +11,127 @@ interface Props {
 }
 
 export default function CarForm({ initialData, onSave, onCancel }: Props) {
+
+  const router = useRouter();
+
   const [marca, setMarca] = useState(initialData?.marca || "");
   const [model, setModel] = useState(initialData?.model || "");
   const [precio, setPrecio] = useState(initialData?.precio || "");
   const [combustible, setCombustible] = useState(initialData?.combustible || "");
-  const [anoFabricacion, setAnoFabricacion] = useState(
-    initialData?.anoFabricacion || ""
-  );
+  const [anoFabricacion, setAnoFabricacion] = useState(initialData?.anoFabricacion || "");
   const [color, setColor] = useState(initialData?.color || "");
 
-  // IMÁGENES
   const [files, setFiles] = useState<File[]>([]);
   const [preview, setPreview] = useState<string[]>([]);
   const [existingFotos, setExistingFotos] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // Cargar fotos existentes si estás editando
+  // Cargar fotos en modo edición
   useEffect(() => {
     if (!initialData?.id) return;
 
     fetch(`/api/fotos-car/${initialData.id}`)
-      .then((r) => r.json())
-      .then((res) => {
-        if (Array.isArray(res)) setExistingFotos(res);
+      .then(r => r.json())
+      .then(f => {
+        if (Array.isArray(f)) setExistingFotos(f);
       })
       .catch(console.error);
   }, [initialData]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files ? Array.from(e.target.files) : [];
-    setFiles(selected);
-    setPreview(selected.map((f) => URL.createObjectURL(f)));
+
+    const arr = Array.from(e.target.files || []);
+    setFiles(arr);
+    setPreview(arr.map(f => URL.createObjectURL(f)));
   };
 
   const uploadImages = async (carId: number) => {
     if (files.length === 0) return;
 
-    setUploading(true);
+    const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+
     const formData = new FormData();
-    files.forEach((f) => formData.append("files", f));
+    files.forEach(f => formData.append("files", f));
+
+    setUploading(true);
 
     try {
-      await fetch(`/api/fotos-car/${carId}`, {
+      await fetch(`${API}/fotos-car/${carId}`, {
         method: "POST",
-        credentials: "include",
         body: formData,
       });
     } catch (err) {
-      console.error("Error subiendo imágenes:", err);
+      console.error("Error subiendo fotos:", err);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
 
     const carData = {
       marca,
       model,
-      precio: parseFloat(precio),
+      precio: Number(precio),
       combustible,
       anoFabricacion: Number(anoFabricacion),
       color,
     };
 
-    // onSave siempre debe devolver el coche con ID
     const saved = await onSave(carData);
-
+console.log("🟩 Resultado onSave:", saved);
     if (!saved || !saved.id) {
-      console.error("❌ ERROR: onSave no devolvió el coche con ID");
-      alert("Error interno: El servidor no devolvió el ID del coche.");
+      console.error("❌ ERROR: onSave no devolvió ID", saved);
+      alert("Error interno: no se recibió ID del coche.");
       return;
     }
 
-    // Subimos imágenes si las hay
     await uploadImages(saved.id);
-  };
 
-  const handleDeleteFoto = async (id: number) => {
-    if (!confirm("¿Eliminar esta foto?")) return;
+      toast.success("Coche guardado correctamente 🚗✨");
 
-    await fetch(`/api/fotos-car/${id}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
+  // 👉 Volver al panel en 2s
+  setTimeout(() => {
+    onCancel(); // vuelve a la lista REAL desde AdminPage
 
-    setExistingFotos((prev) => prev.filter((f) => f.id !== id));
+  }, 2000);
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-white p-6 rounded-lg shadow space-y-4 max-w-xl"
-    >
-      <div className="grid grid-cols-2 gap-3">
-        <input
-          type="text"
-          placeholder="Marca"
-          className="border p-2 rounded"
-          value={marca}
-          onChange={(e) => setMarca(e.target.value)}
-          required
-        />
+    <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-4">
+      <input className="border p-2 w-full" placeholder="Marca" value={marca} onChange={e => setMarca(e.target.value)} />
+      <input className="border p-2 w-full" placeholder="Modelo" value={model} onChange={e => setModel(e.target.value)} />
+      <input className="border p-2 w-full" placeholder="Precio" type="number" value={precio} onChange={e => setPrecio(e.target.value)} />
+      <input className="border p-2 w-full" placeholder="Combustible" value={combustible} onChange={e => setCombustible(e.target.value)} />
+      <input className="border p-2 w-full" placeholder="Año" type="number" value={anoFabricacion} onChange={e => setAnoFabricacion(e.target.value)} />
+      <input className="border p-2 w-full" placeholder="Color" value={color} onChange={e => setColor(e.target.value)} />
 
-        <input
-          type="text"
-          placeholder="Modelo"
-          className="border p-2 rounded"
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          required
-        />
-      </div>
+      <label className="font-bold">Imágenes</label>
+      <input type="file" multiple onChange={handleFileChange} />
 
-      <input
-        type="number"
-        placeholder="Precio (€)"
-        className="w-full border p-2 rounded"
-        value={precio}
-        onChange={(e) => setPrecio(e.target.value)}
-        required
-      />
+      {preview.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 mt-2">
+          {preview.map((src, i) => (
+            <img key={i} src={src} className="w-20 h-20 object-cover rounded" />
+          ))}
+        </div>
+      )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <input
-          type="text"
-          placeholder="Combustible"
-          className="border p-2 rounded"
-          value={combustible}
-          onChange={(e) => setCombustible(e.target.value)}
-        />
+      {existingFotos.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 mt-2">
+          {existingFotos.map(f => (
+            <img key={f.id} src={f.url} className="w-20 h-20 object-cover rounded" />
+          ))}
+        </div>
+      )}
 
-        <input
-          type="number"
-          placeholder="Año"
-          className="border p-2 rounded"
-          value={anoFabricacion}
-          onChange={(e) => setAnoFabricacion(e.target.value)}
-        />
-      </div>
-
-      <input
-        type="text"
-        placeholder="Color"
-        className="w-full border p-2 rounded"
-        value={color}
-        onChange={(e) => setColor(e.target.value)}
-      />
-
-      {/* GALERÍA */}
-      <div>
-        <label className="block text-gray-700 mb-1 font-semibold">
-          Galería de imágenes:
-        </label>
-
-        <input type="file" multiple accept="image/*" onChange={handleFileChange} />
-
-        {/* Nuevas imágenes */}
-        {preview.length > 0 && (
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            {preview.map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                className="w-24 h-24 object-cover rounded border"
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Imágenes existentes */}
-        {existingFotos.length > 0 && (
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            {existingFotos.map((foto) => (
-              <div key={foto.id} className="relative group">
-                <img
-                  src={foto.url}
-                  className="w-24 h-24 object-cover rounded border"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleDeleteFoto(foto.id)}
-                  className="absolute top-1 right-1 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition"
-                >
-                  X
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {uploading && (
-          <p className="text-blue-600 text-sm mt-2">Subiendo imágenes...</p>
-        )}
-      </div>
-
-      {/* BOTONES */}
-      <div className="flex gap-3 justify-end mt-6">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="border px-4 py-2 rounded hover:bg-gray-100"
-        >
-          Cancelar
-        </button>
-
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-          disabled={uploading}
-        >
-          Guardar
-        </button>
-      </div>
+      <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+        Guardar
+      </button>
+      <button type="button" onClick={onCancel} className="ml-2 border px-4 py-2 rounded">
+        Cancelar
+      </button>
     </form>
   );
 }

@@ -1,152 +1,157 @@
 "use client";
 
-const API_BASE = "/api";
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+console.log("🔥 FRONTEND API BASE:", API);
 
-// ============================================================
-// CSRF TOKEN
-// ============================================================
-let csrfToken: string | null = null;
 
-export function setCsrfToken(token: string) {
-  csrfToken = token;
-  if (typeof window !== "undefined") {
-    localStorage.setItem("csrfToken", token);
-  }
+/* ============================================================
+   TOKEN
+============================================================ */
+function getAuthHeader() {
+  if (typeof window === "undefined") return {};
+
+  const token = localStorage.getItem("token");
+  if (!token) return {};
+
+  return { Authorization: `Bearer ${token}` };
 }
 
-export function getCsrfHeader() {
-  if (!csrfToken && typeof window !== "undefined") {
-    csrfToken = localStorage.getItem("csrfToken");
-  }
-  return csrfToken ? { "X-CSRF-Token": csrfToken } : {};
-}
+/* ============================================================
+   FETCH BASE — con JSON seguro
+============================================================ */
+async function apiFetch(path: string, options: any = {}) {
+  const url = `${API}${path}`;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-// ============================================================
-// FETCH BASE
-// ============================================================
-async function fetchBase(path: string, options: any = {}) {
-  return fetch(`${API_BASE}${path}`, {
+  const res = await fetch(url, {
     ...options,
-    credentials: "include",
     headers: {
+      Accept: "application/json",
       ...(options.headers || {}),
-      ...getCsrfHeader(),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
+
+  const text = await res.text();
+
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    console.error("❌ Respuesta no JSON:", text);
+    throw new Error("El servidor devolvió HTML en lugar de JSON");
+  }
+
+  if (!res.ok) {
+    console.error("❌ ERROR API", json);
+    throw new Error(json.error || "Error API");
+  }
+
+  return json;
 }
 
-// ============================================================
-// FETCH WITH REFRESH
-// ============================================================
-export async function fetchWithRefresh(path: string, options: any = {}) {
-  let res = await fetchBase(path, options);
-
-  if (res.status !== 401) return res;
-
-  const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
-    method: "POST",
-    credentials: "include",
-  });
-
-  if (!refreshRes.ok) throw new Error("No se pudo refrescar token");
-
-  const data = await refreshRes.json();
-  if (data.csrfToken) setCsrfToken(data.csrfToken);
-
-  return fetchBase(path, options);
-}
-
-// ============================================================
-// AUTH
-// ============================================================
+/* ============================================================
+   AUTH
+============================================================ */
 export async function login(email: string, password: string) {
-  const res = await fetch(`${API_BASE}/auth/login`, {
+  const res = await fetch(`${API}/auth/login`, {
     method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ email, password }),
   });
 
-  const data = await res.json();
-  if (data.csrfToken) setCsrfToken(data.csrfToken);
+  const text = await res.text();
 
-  return data;
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    console.error("❌ Respuesta NO JSON en login:", text);
+    throw new Error("Respuesta no válida desde /auth/login");
+  }
+
+  return json;
 }
 
-export async function logout() {
-  await fetch(`${API_BASE}/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
+export function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
 }
 
-// ============================================================
-// COCHES
-// ============================================================
+/* ============================================================
+   COCHES
+============================================================ */
 export async function getCars() {
-  const res = await fetchWithRefresh(`/cars`);
-  return res.json();
+  return apiFetch(`/cars`);
 }
 
 export async function addCar(data: any) {
-  const res = await fetchWithRefresh(`/cars`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  return res.json();
+  console.log("📤 addCar() — Enviando:", data);
+
+  try {
+    const response = await apiFetch(`/cars`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    console.log("📥 addCar() — Respuesta del servidor:", response);
+    return response;
+
+  } catch (error) {
+    console.error("❌ addCar() — ERROR:", error);
+    return null;
+  }
 }
 
+
+
 export async function updateCar(id: number, data: any) {
-  const res = await fetchWithRefresh(`/cars/${id}`, {
+  return apiFetch(`/cars/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  return res.json();
 }
 
 export async function deleteCar(id: number) {
-  const res = await fetchWithRefresh(`/cars/${id}`, {
+  return apiFetch(`/cars/${id}`, {
     method: "DELETE",
   });
-  return res.json();
 }
 
-// ============================================================
-// PIEZAS
-// ============================================================
+/* ============================================================
+   PIEZAS
+============================================================ */
 export async function getPiezas() {
-  const res = await fetchWithRefresh(`/piezas`);
-  return res.json();
+  return apiFetch(`/piezas`);
 }
 
 export async function addPieza(data: any) {
-  const res = await fetchWithRefresh(`/piezas`, {
+  return apiFetch(`/piezas`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  return res.json();
 }
 
 export async function updatePieza(id: number, data: any) {
-  const res = await fetchWithRefresh(`/piezas/${id}`, {
+  return apiFetch(`/piezas/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  return res.json();
 }
 
 export async function deletePieza(id: number) {
-  const res = await fetchWithRefresh(`/piezas/${id}`, {
+  return apiFetch(`/piezas/${id}`, {
     method: "DELETE",
   });
-  return res.json();
 }
 
 export async function getPieza(id: number) {
-  const res = await fetchWithRefresh(`/piezas/${id}`);
-  return res.json();
+  return apiFetch(`/piezas/${id}`);
 }

@@ -5,7 +5,8 @@
 import { useEffect, useState } from "react";
 import CarCard from "@/components/CarCard";
 import CarCarousel from "@/components/CarCarousel";
-import { getCars, Car } from "@/lib/apiServer";
+import { getCars } from "@/lib/api";
+import { Car } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -15,20 +16,25 @@ export default function HomePage() {
   const [carouselImages, setCarouselImages] = useState<string[]>([]);
 
   // 1. Cargar coches
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await getCars();
-        setCars(data);
-      } catch (err) {
-        console.error("Error al cargar coches:", err);
-        setCars([]);
-      }
-    };
+useEffect(() => {
+  const load = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.warn("⛔ Sin token, no cargo coches");
+      return;
+    }
 
-    load();
-  }, []);
+    try {
+      const data = await getCars();
+      setCars(data);
+    } catch (err) {
+      console.error("⛔ Error cargando coches:", err);
+      setCars([]);
+    }
+  };
 
+  load();
+}, []);
   // 2. Cada vez que cambia de coche → generar 3 imágenes aleatorias
   useEffect(() => {
     if (cars.length === 0) return;

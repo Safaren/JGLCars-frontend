@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -15,24 +14,32 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const res = await fetch(`/api/auth/login`, {
+      //const res = await fetch(`/api/auth/login`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
       const body = await res.json();
+      console.log("RESPUESTA LOGIN --->", body);
+
 
       if (!res.ok) {
         setError(body.error || "Error al iniciar sesión");
         return;
       }
 
-      localStorage.setItem("user", JSON.stringify(body.user));
-      localStorage.setItem("csrfToken", body.csrfToken);
+      // 🎯 IMPORTANTE: GUARDAR TOKEN
+      if (body.accessToken) {
+        localStorage.setItem("token", body.accessToken);
+      }
 
-      if (body.user?.rol?.toLowerCase() === "admin") {
+      // 🎯 Guardar usuario
+      localStorage.setItem("user", JSON.stringify(body.user));
+
+      // Redirección según rol
+      if (body.user.rol.toLowerCase() === "admin") {
         router.push("/admin");
       } else {
         router.push("/");
