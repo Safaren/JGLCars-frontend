@@ -74,9 +74,10 @@ export default function CochesPage() {
       res = res.filter((c) => c.combustible === combustibleFilter);
     }
 
-    if (maxPrecio !== null && maxPrecio > 0) {
-      res = res.filter((c) => c.precio <= maxPrecio);
-    }
+  if (maxPrecio !== null && maxPrecio > 0) {
+  res = res.filter((c) => typeof c.precio === "number" && c.precio <= maxPrecio);
+}
+
 
     setFiltered(res);
   }, [search, marcaFilter, combustibleFilter, maxPrecio, cars]);
