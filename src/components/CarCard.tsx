@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
+import { Car } from "@/types/Car";
 
 interface Car {
   id?: number | string;
