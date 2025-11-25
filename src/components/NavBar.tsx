@@ -40,18 +40,20 @@ export default function NavBar() {
     <nav
       id="main-navbar"
       className="
+      fixed top-0 z-50 w-full
         bg-white shadow-md h-16 
         px-6 flex justify-between items-center 
-        sticky top-0 z-50
+        
       "
     >
       {/* LOGO */}
       <motion.div
         onClick={() => router.push("/")}
         whileHover={{ scale: 1.05 }}
-        className="cursor-pointer font-extrabold text-2xl text-blue-700 select-none"
+        className="cursor-pointer font-extrabold text-2xl text-blue-700 select-none "
       >
-        JLGCars
+        <img src="/logo.svg" alt="Logo" className="h-15 w-auto object-contain mr-2" />
+  
       </motion.div>
 
       {/* MENU ESCRITORIO */}

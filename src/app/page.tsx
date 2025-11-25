@@ -61,13 +61,13 @@ useEffect(() => {
   }, [cars]);
 
   return (
-    <main className="min-h-screen px-6 lg:px-16">
+    <main className="min-h-screen px-6 lg:px-16 mt-20 ">
 
       {/* Carrusel dinámico */}
       <CarCarousel images={carouselImages} interval={3000} />
 
-      <h2 className="text-3xl font-bold mb-6 text-center">
-        Coches de ocasión disponibles 🚗
+      <h2 className="text-3xl text-neutral-50 font-bold mb-6 text-center  mt-10">
+        Coches de ocasión disponibles 
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-16">

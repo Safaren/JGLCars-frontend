@@ -15,7 +15,7 @@ interface Props {
 
 export default function CarCarousel({
   images,
-  interval = 3000,
+  interval = 3500,
   marca,
   model,
   combustible,
@@ -24,158 +24,163 @@ export default function CarCarousel({
   const [index, setIndex] = useState(0);
   const [hovering, setHovering] = useState(false);
   const router = useRouter();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const touchStartX = useRef<number | null>(null);
 
-  // Reiniciar al recibir nuevas imágenes
-  useEffect(() => {
-    setIndex(0);
-  }, [images]);
+  // Reiniciar si cambian imágenes
+  useEffect(() => setIndex(0), [images]);
 
-  // Autoplay (pausado en hover)
+  // Autoplay con pausa en hover
   useEffect(() => {
     if (!images.length || hovering) return;
-
-    const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % images.length);
-    }, interval);
-
-    return () => clearInterval(timer);
+    const t = setInterval(() => setIndex((i) => (i + 1) % images.length), interval);
+    return () => clearInterval(t);
   }, [images, interval, hovering]);
 
-  const goNext = () => {
-    setIndex((prev) => (prev + 1) % images.length);
-  };
+  const goPrev = () =>
+    setIndex((i) => (i - 1 + images.length) % images.length);
+  const goNext = () =>
+    setIndex((i) => (i + 1) % images.length);
 
-  const goPrev = () => {
-    setIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
-
-  // Swipe móvil
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
+  // Swipe táctil
+  const onTouchStart = (e: React.TouchEvent) =>
+    (touchStartX.current = e.touches[0].clientX);
 
   const onTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
-    const diff = e.changedTouches[0].clientX - touchStartX.current;
 
+    const diff = e.changedTouches[0].clientX - touchStartX.current;
     if (diff > 50) goPrev();
     else if (diff < -50) goNext();
 
     touchStartX.current = null;
   };
 
-  // Click → abrir página del coche
-  const openCar = () => {
-    if (carId) router.push(`/admin${carId}`);
-  };
-
   if (images.length === 0) {
     return (
-      <div className="w-full h-64 sm:h-96 bg-gray-200 rounded-xl flex items-center justify-center">
-        <span className="text-gray-600">No hay imágenes</span>
+      <div className="w-full h-72 bg-gray-200 rounded-xl flex items-center justify-center">
+        <span className="text-gray-600">Sin imágenes</span>
       </div>
     );
   }
 
   return (
-    <div className="w-full flex flex-col gap-3">
-      {/* CONTENEDOR PRINCIPAL */}
+    <div className="w-full flex flex-col gap-4">
+      {/* CONTENEDOR PRINCIPAL (altura dinámica) */}
       <div
-        className="relative w-full h-64 sm:h-96 rounded-xl overflow-hidden shadow-xl group select-none"
+        ref={containerRef}
+        className="
+          relative w-full rounded-xl overflow-hidden shadow-2xl
+          bg-black
+          transition-all duration-500
+        "
+        style={{ height: "auto" }}
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        onClick={openCar}
       >
-        {/* IMAGEN PRINCIPAL */}
-        <Image
-          key={images[index]}
-          src={images[index]}
-          alt="Imagen de coche"
-          fill
-          priority
-          className="object-cover transition-opacity duration-700 cursor-pointer"
-        />
+        {/* SLIDES */}
+        <div className="relative w-full h-[65vh] max-h-[800px] min-h-[300px]">
+          {images.map((img, i) => (
+            <div
+              key={i}
+              className={`
+                absolute inset-0 transition-opacity duration-700
+                ${i === index ? "opacity-100" : "opacity-0"}
+              `}
+            >
+              <Image
+                src={img}
+                alt="Foto del coche"
+                fill
+                priority={i === index}
+                className="
+                  object-contain
+                  transition-transform duration-700
+                "
+              />
+            </div>
+          ))}
+        </div>
 
-        {/* TEXTO: marca, modelo, combustible */}
+        {/* TEXTO INFERIOR */}
         {(marca || model || combustible) && (
-          <div
-            className="
-            absolute bottom-3 right-3 
-            bg-black/60 text-white px-4 py-2 
-            rounded-lg shadow-lg text-right 
-            backdrop-blur-sm
-          "
-          >
-            <p className="font-bold text-lg">{marca} {model}</p>
-            <p className="text-sm opacity-90">{combustible}</p>
+          <div className="
+            absolute bottom-4 right-4 
+            bg-black/60 backdrop-blur-md
+            text-white px-4 py-2 rounded-lg shadow-lg
+          ">
+            <p className="text-lg font-bold">{marca} {model}</p>
+            <p className="text-sm opacity-70">{combustible}</p>
           </div>
         )}
 
         {/* BOTÓN PREV */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            goPrev();
-          }}
+          onClick={goPrev}
           className="
-          absolute left-3 top-1/2 -translate-y-1/2 
-          bg-black/50 hover:bg-black/70 text-white 
-          w-10 h-10 rounded-full flex items-center justify-center 
-          opacity-0 group-hover:opacity-100 transition
-        "
+            hidden sm:flex
+            absolute left-4 top-1/2 -translate-y-1/2
+            w-11 h-11 rounded-full 
+            bg-white/20 hover:bg-white/40 
+            text-white text-3xl font-bold
+            backdrop-blur-md
+            items-center justify-center
+            transition opacity-0 group-hover:opacity-100
+          "
         >
           ‹
         </button>
 
         {/* BOTÓN NEXT */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            goNext();
-          }}
+          onClick={goNext}
           className="
-          absolute right-3 top-1/2 -translate-y-1/2 
-          bg-black/50 hover:bg-black/70 text-white 
-          w-10 h-10 rounded-full flex items-center justify-center 
-          opacity-0 group-hover:opacity-100 transition
-        "
+            hidden sm:flex
+            absolute right-4 top-1/2 -translate-y-1/2
+            w-11 h-11 rounded-full 
+            bg-white/20 hover:bg-white/40 
+            text-white text-3xl font-bold
+            backdrop-blur-md
+            items-center justify-center
+            transition opacity-0 group-hover:opacity-100
+          "
         >
           ›
         </button>
 
-        {/* INDICADORES (puntos) */}
-        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
+        {/* PUNTOS DE NAVEGACIÓN */}
+        <div className="absolute bottom-4 inset-x-0 flex justify-center gap-2">
           {images.map((_, i) => (
-            <span
+            <button
               key={i}
+              onClick={() => setIndex(i)}
               className={`
-              w-3 h-3 rounded-full transition-all
-              ${i === index ? "bg-white shadow-md scale-110" : "bg-white/40"}
-            `}
+                w-3 h-3 rounded-full transition-all
+                ${i === index ? "bg-white scale-110 shadow-md" : "bg-white/40"}
+              `}
             />
           ))}
         </div>
       </div>
 
       {/* MINIATURAS */}
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      <div className="flex gap-3 overflow-x-auto pb-2">
         {images.map((img, i) => (
           <div
             key={i}
             onClick={() => setIndex(i)}
             className={`
-              relative w-24 h-16 rounded-md overflow-hidden cursor-pointer
-              border-2 transition-all
-              ${i === index ? "border-blue-500" : "border-transparent"}
+              relative w-28 h-20 rounded-md overflow-hidden cursor-pointer
+              border-2 transition
+              ${i === index ? "border-blue-600" : "border-transparent"}
             `}
           >
             <Image
               src={img}
-              alt="Miniatura"
+              alt="Miniatura coche"
               fill
               className="object-cover"
             />
