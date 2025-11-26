@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 
-interface Imagen {
-  id: number;
+interface CarImage {
   url: string;
 }
 
@@ -11,7 +10,7 @@ interface Car {
   id: number;
   destacado?: boolean;
   carruselFotos?: string[];
-  imagenes?: Imagen[];
+  imagenes?: CarImage[];
 }
 
 interface Props {
@@ -19,6 +18,7 @@ interface Props {
   onSave: (data: { destacado: boolean; carruselFotos: string[] }) => Promise<void>;
   onCancel?: () => void;
 }
+
 
 export default function CarCarruselConfig({ car, onSave, onCancel }: Props) {
   const [destacado, setDestacado] = useState<boolean>(car.destacado ?? false);
