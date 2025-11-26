@@ -1,5 +1,3 @@
-// src/app/admin/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import CarForm from "@/components/CarForm";
 import CarTable from "@/components/CarTable";
-import CarouselAdmin from "@/components/CarouselAdmin";
+import CarCarruselConfig from "@/components/CarCarruselConfig";
 
 import { getCars, addCar, updateCar, deleteCar } from "@/lib/api";
 
@@ -15,6 +13,12 @@ import { CarForFrontend } from "@/types/CarForFrontend";
 import { CarInput } from "@/types";
 
 import toast from "react-hot-toast";
+
+// ⭐ TYPE PARA EL CARRUSEL — Sin ANY
+type CarruselConfigInput = {
+  destacado: boolean;
+  carruselFotos: string[];
+};
 
 export default function AdminPage() {
   const router = useRouter();
@@ -28,17 +32,24 @@ export default function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState<CarForFrontend | null>(null);
 
+  // ============================================
+  // SANITIZAR COCHE PARA EL FRONTEND
+  // ============================================
   const sanitizeCar = (car: any): CarForFrontend => ({
     ...car,
     imagenes: Array.isArray(car.imagenes)
       ? car.imagenes.map((i: any) => ({ url: i.url }))
       : [],
-    tipoVenta:
-      car.tipoVenta === "COCHE" || car.tipoVenta === "PIEZAS"
-        ? car.tipoVenta
-        : "COCHE",
+
+    destacado: Boolean(car.destacado),
+    carruselFotos: Array.isArray(car.carruselFotos)
+      ? car.carruselFotos
+      : [],
   });
 
+  // ============================================
+  // CONTROL DE ACCESO (solo admin)
+  // ============================================
   useEffect(() => {
     try {
       const token = localStorage.getItem("token");
@@ -63,6 +74,9 @@ export default function AdminPage() {
     }
   }, []);
 
+  // ============================================
+  // CARGAR COCHES
+  // ============================================
   const loadCars = async () => {
     try {
       const data = await getCars();
@@ -82,12 +96,15 @@ export default function AdminPage() {
     if (allowed) loadCars();
   }, [allowed]);
 
+  // ============================================
+  // CREAR / EDITAR COCHE
+  // ============================================
   const handleSaveCar = async (data: CarInput) => {
     try {
       let result;
 
       if (editingCar) {
-        result = await updateCar(editingCar.id!, data);
+        result = await updateCar(editingCar.id, data);
       } else {
         result = await addCar(data);
       }
@@ -106,9 +123,37 @@ export default function AdminPage() {
     setShowForm(false);
     setEditingCar(null);
     loadCars();
-    router.push("/admin"); // <-- 🔥 IMPORTANTE: FORZAMOS /admin
+    router.push("/admin");
   };
 
+  // ============================================
+  // ⭐ GUARDAR CONFIGURACIÓN DEL CARRUSEL
+  // ============================================
+  const saveCarruselConfig = async (
+    id: number,
+    data: CarruselConfigInput
+  ) => {
+    try {
+      await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/cars/carrusel/${id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }
+      );
+
+      toast.success("Configuración del carrusel guardada ✔");
+      loadCars();
+    } catch (err) {
+      console.error("Error guardando configuración:", err);
+      toast.error("No se pudo guardar configuración");
+    }
+  };
+
+  // ============================================
+  // ESTADOS
+  // ============================================
   if (allowed === null) {
     return <p className="p-6 text-gray-500">Cargando...</p>;
   }
@@ -119,13 +164,9 @@ export default function AdminPage() {
         <h2 className="text-2xl text-red-600 font-bold mb-2">
           ⚠ Acceso restringido
         </h2>
-        <p className="text-gray-700">
-          Esta sección es solo para administradores.
-        </p>
-
         <button
-          className="mt-6 bg-blue-600 text-white px-4 py-2 rounded"
           onClick={() => router.push("/")}
+          className="mt-6 bg-blue-600 text-white px-4 py-2 rounded"
         >
           Volver al inicio
         </button>
@@ -133,9 +174,13 @@ export default function AdminPage() {
     );
   }
 
+  // ============================================
+  // RENDER DEL PANEL ADMIN
+  // ============================================
   return (
     <div className="p-6 max-w-6xl mx-auto">
 
+      {/* CABECERA */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-blue-700">
           Panel de administración
@@ -153,6 +198,7 @@ export default function AdminPage() {
         </button>
       </div>
 
+      {/* BOTONES DE SECCIÓN */}
       <div className="flex gap-4 mb-8">
         <button
           onClick={() => setSection("cars")}
@@ -177,6 +223,7 @@ export default function AdminPage() {
         </button>
       </div>
 
+      {/* SECCIÓN COCHES */}
       {section === "cars" && (
         <>
           <button
@@ -211,7 +258,24 @@ export default function AdminPage() {
         </>
       )}
 
-      {section === "carousel" && <CarouselAdmin />}
+      {/* ⭐ SECCIÓN CARRUSEL */}
+      {section === "carousel" && (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold mb-4">
+            Configuración del Carrusel
+          </h2>
+
+          {cars.map((car) => (
+            <CarCarruselConfig
+              key={car.id}
+              car={car}
+              onSave={(data: CarruselConfigInput) =>
+                saveCarruselConfig(car.id!, data)
+              }
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

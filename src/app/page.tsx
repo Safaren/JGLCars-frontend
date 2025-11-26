@@ -1,80 +1,77 @@
-// src/app/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
 import CarCard from "@/components/CarCard";
 import CarCarousel from "@/components/CarCarousel";
 import { getCars } from "@/lib/api";
-import { Car } from "@/types";
 import { CarForFrontend } from "@/types/CarForFrontend";
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
   const [cars, setCars] = useState<CarForFrontend[]>([]);
-  const [currentCarIndex, setCurrentCarIndex] = useState(0);
-  const [carouselImages, setCarouselImages] = useState<string[]>([]);
+  const [carouselData, setCarouselData] = useState<any[]>([]);
 
   // 1. Cargar coches
-useEffect(() => {
-  const load = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      console.warn("⛔ Sin token, no cargo coches");
-      return;
-    }
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await getCars();
+        setCars(data);
+      } catch {
+        setCars([]);
+      }
+    };
+    load();
+  }, []);
 
-    try {
-      const data = await getCars();
-      setCars(data);
-    } catch (err) {
-      console.error("⛔ Error cargando coches:", err);
-      setCars([]);
-    }
-  };
-
-  load();
-}, []);
-  // 2. Cada vez que cambia de coche → generar 3 imágenes aleatorias
+  // 2. Generar datos del carrusel con toda la información de cada imagen
   useEffect(() => {
     if (cars.length === 0) return;
 
-    const car = cars[currentCarIndex];
-    const imgs = car.imagenes?.map(i => i.url) || [];
+    const destacados = cars.filter((c) => c.destacado);
 
-    // Elegir 3 aleatorias
-    const shuffled = imgs.sort(() => Math.random() - 0.5);
-    setCarouselImages(shuffled.slice(0, 3));
+    const lista = destacados.flatMap((c) =>
+      c.carruselFotos.map((url) => ({
+        url,
+        carId: c.id,
+        marca: c.marca,
+        model: c.model,
+        combustible: c.combustible,
+        precio: c.precio,
+        anoFabricacion: c.anoFabricacion,
+      }))
+    );
 
-  }, [currentCarIndex, cars]);
-
-  // 3. Rotar coches después de mostrar 3 imágenes (intervalo del carrusel × 3)
-  useEffect(() => {
-    if (cars.length === 0) return;
-
-    const interval = setInterval(() => {
-      setCurrentCarIndex((prev) => (prev + 1) % cars.length);
-    }, 3000 * 3); // 3 imágenes × 3 segundos = 9s por coche
-
-    return () => clearInterval(interval);
+    setCarouselData(lista);
   }, [cars]);
 
   return (
-    <main className="min-h-screen px-6 lg:px-16 mt-20 ">
+    <main className="min-h-screen px-6 lg:px-16 mt-20">
 
-      {/* Carrusel dinámico */}
-      <CarCarousel images={carouselImages} interval={3000} />
+      {/* Carrusel con todos los datos */}
+      <CarCarousel
+        images={carouselData.map((d) => d.url)}
+        marca={carouselData[0]?.marca}
+        model={carouselData[0]?.model}
+        combustible={carouselData[0]?.combustible}
+        precio={carouselData[0]?.precio}
+        anoFabricacion={carouselData[0]?.anoFabricacion}
+        carId={carouselData[0]?.carId}
+        interval={3000}
+      />
 
-      <h2 className="text-3xl text-neutral-50 font-bold mb-6 text-center  mt-10">
-        Coches de ocasión disponibles 
+      <h2 className="text-3xl text-neutral-50 font-bold mb-6 text-center mt-10">
+        Coches de ocasión disponibles
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-16">
         {cars.length > 0 ? (
           cars.map((car) => <CarCard key={car.id} car={car} />)
         ) : (
-          <p className="text-gray-500">No hay coches disponibles en este momento.</p>
+          <p className="text-gray-500">
+            No hay coches disponibles en este momento.
+          </p>
         )}
       </div>
     </main>

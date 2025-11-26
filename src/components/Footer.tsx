@@ -39,7 +39,7 @@ export default function Footer() {
             </li>
             <li className="flex items-center gap-3">
               <FaEnvelope className="text-blue-500" />
-              <span>jlgcars@gmail.com</span>
+              <span>jlgcars77@gmail.com</span>
             </li>
             <li className="flex items-center gap-3">
               <FaMapMarkerAlt className="text-blue-500" />
