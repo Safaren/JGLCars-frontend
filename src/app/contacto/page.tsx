@@ -1,9 +1,7 @@
 import ContactoForm from "../../components/ContactoForm";
-
-
+import { Suspense } from "react";
 
 export default function ContactoPage() {
-  // Cambia aquí el número que quieres mostrar
   const phone = "621 630 342";
 
   return (
@@ -13,7 +11,9 @@ export default function ContactoPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         {/* IZQUIERDA: formulario */}
         <div>
-          <ContactoForm />
+          <Suspense fallback={<p className="text-gray-400">Cargando…</p>}>
+            <ContactoForm />
+          </Suspense>
         </div>
 
         {/* DERECHA: tarjeta de llamada */}

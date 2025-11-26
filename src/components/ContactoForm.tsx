@@ -1,3 +1,5 @@
+// JGLCars-frontend/src/components/ContactoForm.tsx
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
