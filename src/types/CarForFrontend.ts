@@ -32,7 +32,7 @@ export interface CarForFrontend {
   cilindrada?: number;
   anoFabricacion?: number;
   descripcion?: string;
-  etiqueta?: string;
+  ambiental?: string;
   km?: number;
 
   imagenes: CarImage[];
