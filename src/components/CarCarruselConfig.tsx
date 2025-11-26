@@ -73,7 +73,7 @@ export default function CarCarruselConfig({ car, onSave, onCancel }: Props) {
 
             return (
               <button
-                key={imagen.id}
+                key={imagen.url}
                 onClick={() => toggleFoto(imagen.url)}
                 className={`relative group rounded overflow-hidden border ${
                   selected ? "border-blue-600 ring-2 ring-blue-400" : "border-gray-300"
