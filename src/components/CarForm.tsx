@@ -31,10 +31,11 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
   useEffect(() => {
     if (FIELD_CONFIG.videos?.editable) {
       if (!Array.isArray(form.videos)) {
-        setForm((prev: any) => ({
-          ...prev,
-          videos: Array.isArray(initialData?.videos) ? initialData.videos : []
-        }));
+setForm((prev: any) => ({
+  ...prev,
+  videos: Array.isArray((initialData as any)?.videos) ? (initialData as any).videos : []
+}));
+
       }
     }
   }, []);
