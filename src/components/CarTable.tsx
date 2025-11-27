@@ -48,7 +48,8 @@ export default function CarTable({ cars, onEdit, onDelete }: Props) {
 
               {visibleFields.map(([key]) => (
                 <td key={key} className="px-3 py-2">
-                  {car[key] ?? "-"}
+                  {(car as any)[key] ?? "-"}
+
                 </td>
               ))}
 
