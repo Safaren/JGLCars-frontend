@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import CarForm from "@/components/CarForm";
 import CarTable from "@/components/CarTable";
 import CarCarruselConfig from "@/components/CarCarruselConfig";
+import CarFieldsConfig from "@/components/CarFieldsConfig"; // ⭐ NUEVO
 
 import { getCars, addCar, updateCar, deleteCar } from "@/lib/api";
 
@@ -26,7 +27,9 @@ export default function AdminPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [user, setUser] = useState<any | null>(null);
 
-  const [section, setSection] = useState<"cars" | "carousel">("cars");
+  // ⭐ AÑADIMOS NUEVA SECCIÓN "fields"
+  const [section, setSection] =
+    useState<"cars" | "carousel" | "fields">("cars");
 
   const [cars, setCars] = useState<CarForFrontend[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -175,7 +178,7 @@ export default function AdminPage() {
   }
 
   // ============================================
-  // RENDER DEL PANEL ADMIN
+  // RENDER PANEL ADMIN
   // ============================================
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -198,7 +201,7 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* BOTONES DE SECCIÓN */}
+      {/* ⭐ BOTONES DE SECCIÓN */}
       <div className="flex gap-4 mb-8">
         <button
           onClick={() => setSection("cars")}
@@ -221,9 +224,21 @@ export default function AdminPage() {
         >
           Carrusel de inicio
         </button>
+
+        {/* ⭐ NUEVA PESTAÑA */}
+        <button
+          onClick={() => setSection("fields")}
+          className={`px-4 py-2 rounded-lg font-medium ${
+            section === "fields"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+        >
+          Configurar campos
+        </button>
       </div>
 
-      {/* SECCIÓN COCHES */}
+      {/* ⭐ SECCIÓN COCHES */}
       {section === "cars" && (
         <>
           <button
@@ -274,6 +289,13 @@ export default function AdminPage() {
               }
             />
           ))}
+        </div>
+      )}
+
+      {/* ⭐ SECCIÓN CONFIGURAR CAMPOS */}
+      {section === "fields" && (
+        <div className="mt-4">
+          <CarFieldsConfig />
         </div>
       )}
     </div>

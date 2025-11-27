@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import CarCard from "@/components/CarCard";
 import { motion } from "framer-motion";
 import { CarForFrontend } from "@/types/CarForFrontend";
+import CarVideos from "@/components/CarVideos";
 
 export default function CochesPage() {
   const [cars, setCars] = useState<CarForFrontend[]>([]);
@@ -192,9 +193,15 @@ export default function CochesPage() {
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10"
       >
         {filtered.map((car) => (
-          <CarCard key={car.id} car={car} />
-        ))}
+  <div key={car.id}>
+    <CarCard car={car} />
+
+  </div>
+))}
       </motion.div>
+      
     </section>
+
+    
   );
 }

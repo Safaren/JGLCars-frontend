@@ -25,7 +25,6 @@ export default function Footer() {
             <li><Link href="/" className="hover:text-white transition">Inicio</Link></li>
             <li><Link href="/admin" className="hover:text-white transition">Coches disponibles</Link></li>
             <li><Link href="/contacto" className="hover:text-white transition">Contacto</Link></li>
-            <li><Link href="/admin" className="hover:text-white transition">Panel Admin</Link></li>
           </ul>
         </div>
 

@@ -23,6 +23,7 @@ interface Props {
   precio?: number;
   anoFabricacion?: number;
   carId?: number;
+  videos?: string[];
 }
 
 export default function CarCarousel(props: Props) {
@@ -30,6 +31,7 @@ export default function CarCarousel(props: Props) {
 
   const {
     images,
+    videos = [],
     interval = 3500,
     marca,
     model,
@@ -42,6 +44,13 @@ export default function CarCarousel(props: Props) {
   const [index, setIndex] = useState(0);
   const [hovering, setHovering] = useState(false);
 
+    // ⭐ Modal vídeo
+  const [videoModal, setVideoModal] = useState<string | null>(null);
+
+  // ⭐ SWIPE
+  const startX = useRef<number | null>(null);
+  const minSwipe = 50;
+
   useEffect(() => setIndex(0), [images]);
 
   useEffect(() => {
@@ -52,7 +61,21 @@ export default function CarCarousel(props: Props) {
 
   const goPrev = () => setIndex((i) => (i - 1 + images.length) % images.length);
   const goNext = () => setIndex((i) => (i + 1) % images.length);
+  // ⭐ MINIATURA video YouTube
+  const videoThumb = (url: string) => {
+    const m = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]+)/);
+    return m ? `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg` : "";
+  };
 
+    // ⭐ Mezclamos tus imágenes + vídeos sin tocar nada más
+  const slides = [
+    ...images.map((u) => ({ type: "image" as const, url: u })),
+    ...videos.map((u) => ({
+      type: "video" as const,
+      url: u,
+      thumb: videoThumb(u),
+    })),
+  ];
   const clickToCar = () => {
     if (carId) router.push(`/coches/${carId}`);
   };
@@ -120,7 +143,7 @@ export default function CarCarousel(props: Props) {
     absolute left-4 top-1/2 -translate-y-1/2
     w-14 h-14
     rounded-full
-    bg-gradient-to-br from-black/40 to-black/10
+    bg-lineal from-black/40 to-black/10
     backdrop-blur-md
     border border-white/20
     text-white
@@ -173,7 +196,43 @@ export default function CarCarousel(props: Props) {
             />
           ))}
         </div>
+        
       </div>
+
+{/* MINIATURAS (mezcla imagen + vídeo) */}
+        <div className="flex gap-2 justify-center flex-wrap z-20">
+          {slides.map((s, i) => (
+            <div
+              key={i}
+              role="button"
+              onClick={() => setIndex(i)}
+              className={`w-20 h-20 rounded-lg overflow-hidden border cursor-pointer ${
+                i === index ? "border-blue-500" : "border-gray-400"
+              }`}
+            >
+              {s.type === "image" ? (
+                <img src={s.url} className="w-full h-full object-cover" alt="miniatura" />
+              ) : (
+                // thumbnail de vídeo con overlay de play
+                <div className="relative w-full h-full">
+                  <img
+                    src={s.thumb || ""}
+                    alt="thumb vídeo"
+                    className="w-full h-full object-cover"
+                    onError={(ev) => {
+                      (ev.currentTarget as HTMLImageElement).style.backgroundColor = "#111";
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-white text-xl opacity-90">▶</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+    
+      
 
     </div>
   );

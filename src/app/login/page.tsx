@@ -1,12 +1,12 @@
-// JGLCars-frontend/src/app/login/page.tsx
-
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth(); // 🔥 USAMOS EL CONTEXTO
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -15,51 +15,23 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
 
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        credentials: "include", // <-- IMPORTANTE: permite cookies / credenciales
-        body: JSON.stringify({ email, password }),
-      });
+    // 🔥 USAMOS login() DEL CONTEXTO
+    const ok = await login(email, password);
 
-      const body = await res.json();
-      console.log("RESPUESTA LOGIN --->", body);
+    if (!ok) {
+      setError("Credenciales incorrectas");
+      return;
+    }
 
-      if (!res.ok) {
-        setError(body.error || body.message || "Error al iniciar sesión");
-        return;
-      }
+    // Leemos usuario actualizado del localStorage
+    const saved = localStorage.getItem("user");
+    const user = saved ? JSON.parse(saved) : null;
 
-      // Guardar token: soportamos tanto accessToken como token
-      const token = body.accessToken ?? body.token;
-      if (token) {
-        localStorage.setItem("token", token);
-        console.log("Token guardado en localStorage");
-      } else {
-        console.warn("ATENCIÓN: La respuesta no contiene token/accessToken");
-      }
-
-      // Guardar usuario (si viene)
-      if (body.user) {
-        localStorage.setItem("user", JSON.stringify(body.user));
-      } else if (body.userData) {
-        localStorage.setItem("user", JSON.stringify(body.userData));
-      } else {
-        console.warn("ATENCIÓN: La respuesta no contiene user");
-      }
-
-      // Redirección según rol (protegemos con comprobaciones)
-      const savedUserRaw = localStorage.getItem("user");
-      const savedUser = savedUserRaw ? JSON.parse(savedUserRaw) : null;
-      if (savedUser?.rol && savedUser.rol.toLowerCase() === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/");
-      }
-    } catch (err) {
-      console.error("LOGIN ERROR:", err);
-      setError("Error de conexión");
+    // Redirección según rol
+    if (user?.rol?.toLowerCase() === "admin") {
+      router.push("/admin");
+    } else {
+      router.push("/");
     }
   };
 

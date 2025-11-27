@@ -78,7 +78,7 @@ export default function ContactoForm() {
         <input
           type="text"
           placeholder="Nombre"
-          className="border-2 border-amber-500 placeholder-amber-300 text-gray-900 p-3 rounded-xl
+          className="border-2 border-amber-500 placeholder-amber-300  text-amber-200 p-3 rounded-xl
             focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-300"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
@@ -87,7 +87,7 @@ export default function ContactoForm() {
         <input
           type="email"
           placeholder="Email"
-          className="border-2 border-amber-500 placeholder-amber-300 text-gray-900 p-3 rounded-xl
+          className="border-2 border-amber-500 placeholder-amber-300  text-amber-200 p-3 rounded-xl
             focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-300"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -96,7 +96,7 @@ export default function ContactoForm() {
         <input
           type="tel"
           placeholder="Teléfono (opcional)"
-          className="border-2 border-amber-500 placeholder-amber-300 text-gray-900 p-3 rounded-xl
+          className="border-2 border-amber-500 placeholder-amber-300  text-amber-200 p-3 rounded-xl
             focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-300"
           value={telefono}
           onChange={(e) => setTelefono(e.target.value)}
@@ -104,7 +104,7 @@ export default function ContactoForm() {
 
         <textarea
           placeholder="Tu mensaje..."
-          className="border-2 border-amber-500 placeholder-amber-300 text-gray-900 p-3 rounded-xl h-40
+          className="border-2 border-amber-500 placeholder-amber-300 text-amber-200 p-3 rounded-xl h-40
             focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-300"
           value={mensaje}
           onChange={(e) => setMensaje(e.target.value)}

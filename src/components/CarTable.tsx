@@ -1,8 +1,7 @@
-// JGLCars-frontend/src/components/CarTable.tsx
-
 "use client";
 
-import { CarForFrontend } from "@/types/CarForFrontend";
+import { loadFieldConfig } from "@/config/carFields";
+import type { CarForFrontend } from "@/types/CarForFrontend";
 
 interface Props {
   cars: CarForFrontend[];
@@ -11,28 +10,33 @@ interface Props {
 }
 
 export default function CarTable({ cars, onEdit, onDelete }: Props) {
+  const FIELD_CONFIG = loadFieldConfig();
+  const visibleFields = Object.entries(FIELD_CONFIG).filter(([_, cfg]) => cfg.visible);
+
   return (
     <div className="overflow-x-auto bg-white rounded-lg shadow p-4">
       <table className="min-w-full divide-y divide-gray-200">
         <thead>
           <tr className="text-left">
             <th className="px-3 py-2">Foto</th>
-            <th className="px-3 py-2">Marca / Modelo</th>
-            <th className="px-3 py-2">Año</th>
-            <th className="px-3 py-2">Color</th>
-            <th className="px-3 py-2">Precio</th>
+
+            {visibleFields.map(([key, cfg]) => (
+              <th key={key} className="px-3 py-2">
+                {cfg.label}
+              </th>
+            ))}
+
             <th className="px-3 py-2">Acciones</th>
           </tr>
         </thead>
 
         <tbody className="divide-y divide-gray-100">
           {cars.map((car) => (
-            <tr key={car.id ?? Math.random()} className="hover:bg-gray-50">
+            <tr key={car.id} className="hover:bg-gray-50">
               <td className="px-3 py-2 w-24">
                 {car.imagenes?.[0]?.url ? (
                   <img
                     src={car.imagenes[0].url}
-                    alt={`${car.marca ?? ""} ${car.model ?? ""}`}
                     className="w-20 h-14 object-cover rounded"
                   />
                 ) : (
@@ -42,47 +46,36 @@ export default function CarTable({ cars, onEdit, onDelete }: Props) {
                 )}
               </td>
 
-              <td className="px-3 py-2">
-                <div className="font-semibold">
-                  {car.marca ?? "—"} {car.model ?? ""}
-                </div>
-              </td>
-
-              <td className="px-3 py-2">{car.anoFabricacion ?? "-"}</td>
-              <td className="px-3 py-2">{car.color ?? "-"}</td>
-
-              <td className="px-3 py-2 font-bold">
-                {typeof car.precio === "number"
-                  ? car.precio.toLocaleString()
-                  : "—"}{" "}
-                €
-              </td>
+              {visibleFields.map(([key]) => (
+                <td key={key} className="px-3 py-2">
+                  {car[key] ?? "-"}
+                </td>
+              ))}
 
               <td className="px-3 py-2">
                 <div className="flex gap-2">
                   <button
                     onClick={() => onEdit(car)}
-                    className="px-3 py-1 rounded bg-yellow-400 text-white text-sm hover:brightness-90"
+                    className="px-3 py-1 bg-yellow-500 text-white rounded text-sm"
                   >
                     Editar
                   </button>
 
                   <button
                     onClick={() => onDelete(car.id!)}
-                    className="px-3 py-1 rounded bg-red-600 text-white text-sm hover:brightness-90"
+                    className="px-3 py-1 bg-red-600 text-white rounded text-sm"
                   >
                     Borrar
                   </button>
                 </div>
               </td>
-
             </tr>
           ))}
         </tbody>
       </table>
 
       {cars.length === 0 && (
-        <p className="mt-4 text-center text-gray-500">No hay coches.</p>
+        <p className="text-center text-gray-500 mt-4">No hay coches.</p>
       )}
     </div>
   );
