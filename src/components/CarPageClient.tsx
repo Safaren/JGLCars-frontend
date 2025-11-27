@@ -203,17 +203,16 @@ export default function CarPageClient({ id }: { id: string }) {
                 return m ? `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg` : null;
               };
 
-              type Item = { type: "image" | "video"; url: string; thumb?: string };
+type Item = { type: "image" | "video"; url: string; thumb?: string };
 
-              const items: Item[] = [
-                ...images.map((url) => ({ type: "image", url })),
-                ...(car.videos || []).map((url) => ({
-                  type: "video",
-                  url,
-                  thumb: videoThumb(url) || undefined,
-                })),
-              ];
-
+const items: Item[] = [
+  ...images.map((url) => ({ type: "image" as const, url })),
+  ...(car.videos || []).map((url) => ({
+    type: "video" as const,
+    url,
+    thumb: videoThumb(url) || undefined
+  }))
+];
               return (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   {items.map((item, i) => (
