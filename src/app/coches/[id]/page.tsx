@@ -1,7 +1,13 @@
 import CarPageClient from "@/components/CarPageClient";
 
+interface PageParams {
+  params: {
+    id: string;
+  };
+}
+
 // ⭐ METADATA DEL DETALLE DEL COCHE
-export async function generateMetadata({ params }) {
+export async function generateMetadata({ params }: PageParams) {
   const car = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/cars/${params.id}`,
     { cache: "no-store" }
