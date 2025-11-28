@@ -6,6 +6,23 @@ import { loadFieldConfig } from "@/config/carFields";
 import type { CarInput } from "@/types";
 import type { CarForFrontend } from "@/types/CarForFrontend";
 
+import {
+  DndContext,
+  closestCenter,
+  useSensor,
+  useSensors,
+  PointerSensor,
+} from "@dnd-kit/core";
+
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+
+import { CSS } from "@dnd-kit/utilities";
+
 interface Props {
   initialData?: CarForFrontend | null;
   onSave: (data: CarInput) => Promise<any>;
@@ -14,293 +31,399 @@ interface Props {
 
 export default function CarForm({ initialData, onSave, onCancel }: Props) {
   const FIELD_CONFIG = loadFieldConfig();
-  const editableFields = Object.entries(FIELD_CONFIG).filter(([_, cfg]) => cfg.editable);
+  const editableFields = Object.entries(FIELD_CONFIG).filter(
+    ([_, cfg]) => cfg.editable
+  );
 
   const [form, setForm] = useState<any>(initialData || {});
 
-  // ⭐ IMÁGENES
-  const [files, setFiles] = useState<File[]>([]);
-  const [preview, setPreview] = useState<string[]>([]);
-  const [existingFotos, setExistingFotos] = useState<{ id: number; url: string }[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  // ⭐ Imagenes
+  const [existingFotos, setExistingFotos] = useState<
+    { id: number; url: string }[]
+  >([]);
+  const [newFotos, setNewFotos] = useState<
+    { id: string; url: string; file: File }[]
+  >([]);
 
-  const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+  const API =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-  // ⭐ Inicializar array de vídeos correctamente (sin romper JSX)
-  useEffect(() => {
-    if (FIELD_CONFIG.videos?.editable) {
-      if (!Array.isArray(form.videos)) {
-setForm((prev: any) => ({
-  ...prev,
-  videos: Array.isArray((initialData as any)?.videos) ? (initialData as any).videos : []
-}));
+  // dnd-kit sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
 
-      }
-    }
-  }, []);
-
-  // ⭐ Cargar imágenes existentes
+  // Cargar imágenes existentes desde el backend
   useEffect(() => {
     if (!initialData?.id) return;
+
     fetch(`${API}/fotos-car/${initialData.id}`)
       .then((r) => r.json())
-      .then((fotos) => setExistingFotos(Array.isArray(fotos) ? fotos : []));
+      .then((fotos) =>
+        setExistingFotos(Array.isArray(fotos) ? fotos : [])
+      );
   }, [initialData]);
 
+  // Cuando cargas nuevas fotos
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+
+    const mapped = files.map((file) => ({
+      id: crypto.randomUUID(),
+      url: URL.createObjectURL(file),
+      file,
+    }));
+
+    setNewFotos((prev) => [...prev, ...mapped]);
+  };
+
+  // Componente Sortable para EXISTING
+  function SortableImage({
+    foto,
+  }: {
+    foto: { id: number; url: string };
+  }) {
+    const { attributes, listeners, setNodeRef, transform, transition } =
+      useSortable({ id: foto.id });
+
+    const style: React.CSSProperties = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      touchAction: "none",
+    };
+
+    return (
+      <div className="relative group w-20 h-20 select-none">
+        {/* Papelera semicírculo */}
+        <button
+          type="button"
+          draggable={false}
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setExistingFotos((prev) => prev.filter((f) => f.id !== foto.id));
+          }}
+          className="
+            absolute top-0 right-0
+            w-8 h-8 flex items-center justify-center
+            bg-red-600 text-white
+            shadow-xl z-50
+            rounded-bl-full
+            opacity-0 group-hover:opacity-100
+            transition duration-200
+          "
+          style={{ transform: "translate(40%, -40%)" }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="white"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </button>
+
+        {/* Draggable */}
+        <div
+          ref={setNodeRef}
+          {...attributes}
+          {...listeners}
+          style={style}
+          className="w-full h-full rounded overflow-hidden border"
+        >
+          <img
+            src={foto.url}
+            alt="foto"
+            className="w-full h-full object-cover pointer-events-none"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // UI para fotos nuevas (NO reordenables)
+  function PreviewImage({
+    foto,
+  }: {
+    foto: { id: string; url: string; file: File };
+  }) {
+    return (
+      <div className="relative group w-20 h-20 select-none">
+        {/* Papelera igual que las existentes */}
+        <button
+          type="button"
+          onClick={() =>
+            setNewFotos((prev) => prev.filter((f) => f.id !== foto.id))
+          }
+          className="
+            absolute top-0 right-0
+            w-8 h-8 flex items-center justify-center
+            bg-red-600 text-white
+            shadow-xl z-50
+            rounded-bl-full
+            opacity-0 group-hover:opacity-100
+            transition duration-200
+          "
+          style={{ transform: "translate(40%, -40%)" }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="white"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </button>
+
+        <div className="w-full h-full rounded overflow-hidden border">
+          <img
+            src={foto.url}
+            className="w-full h-full object-cover"
+            alt="preview"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Submit
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
     const saved = await onSave(form);
 
-    Object.keys(form).forEach((k) => {
-      if (form[k] === "" || form[k] === null) delete form[k];
-    });
-
     if (!saved?.id) {
-      toast.error("Error al guardar el coche");
+      toast.error("Error al guardar");
       return;
     }
 
-    // Reordenar
+    // Guardar orden de las existentes
     if (existingFotos.length > 0) {
       await fetch(`${API}/fotos-car/reorder/${saved.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderedImages: existingFotos.map((z) => z.url) }),
+        body: JSON.stringify({
+          orderedImages: existingFotos.map((f) => f.url),
+        }),
       });
     }
 
-    // Subir nuevas
-    if (files.length > 0) {
+    // Subir las nuevas
+    if (newFotos.length > 0) {
       const fd = new FormData();
-      files.forEach((f) => fd.append("files", f));
-      await fetch(`${API}/fotos-car/${saved.id}`, { method: "POST", body: fd });
+      newFotos.forEach((f) => fd.append("files", f.file));
+      await fetch(`${API}/fotos-car/${saved.id}`, {
+        method: "POST",
+        body: fd,
+      });
     }
 
-    toast.success("Coche guardado correctamente 🚗✨");
-    setTimeout(() => onCancel(), 800);
+    toast.success("Coche guardado correctamente");
+    onCancel();
   };
 
-  const updateField = (key: string, value: any) => {
-    setForm((prev: any) => ({ ...prev, [key]: value }));
-  };
+  // Reordenar EXISTING al soltar
+  const handleDragEnd = ({ active, over }: any) => {
+    if (!over || active.id === over.id) return;
 
-  const handleDragStart = (index: number) => setDragIndex(index);
+    const oldIndex = existingFotos.findIndex((f) => f.id === active.id);
+    const newIndex = existingFotos.findIndex((f) => f.id === over.id);
 
-  const handleDrop = (index: number) => {
-    if (dragIndex === null) return;
-    const arr = [...existingFotos];
-    const [moved] = arr.splice(dragIndex, 1);
-    arr.splice(index, 0, moved);
-    setExistingFotos(arr);
-    setDragIndex(null);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const arr = Array.from(e.target.files ?? []) as File[];
-    setFiles(arr);
-    setPreview(arr.map((f) => URL.createObjectURL(f)));
+    setExistingFotos((prev) => arrayMove(prev, oldIndex, newIndex));
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-4">
-      
-      {/* CAMPOS AUTOMÁTICOS */}
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white p-6 rounded shadow space-y-4"
+    >
+      {/* === CAMPOS DEL FORM === */}
       {editableFields.map(([key, cfg]) => (
         <div key={key} className="flex flex-col gap-1">
           <label className="font-semibold">{cfg.label}</label>
 
-          {/* ⭐ CAMPO ESPECIAL VIDEOS */}
+          {/* Videos */}
           {key === "videos" && (
             <div className="space-y-3">
-
-              {/* Input para añadir un vídeo */}
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Pega una URL de YouTube"
-                  className="flex-1 border p-2 rounded"
+                  className="border p-2 rounded flex-1"
                   value={form.__newVideo ?? ""}
-                  onChange={(e) => updateField("__newVideo", e.target.value)}
+                  onChange={(e) =>
+                    setForm({ ...form, __newVideo: e.target.value })
+                  }
+                  placeholder="Pega URL de YouTube"
                 />
 
                 <button
                   type="button"
                   className="bg-green-600 text-white px-3 py-2 rounded"
                   onClick={() => {
-                    const val = (form.__newVideo || "").trim();
-                    if (!val) return;
-
-                    const arr = Array.isArray(form[key]) ? [...form[key]] : [];
-                    arr.push(val);
-                    updateField(key, arr);
-                    updateField("__newVideo", "");
+                    if (!form.__newVideo?.trim()) return;
+                    setForm({
+                      ...form,
+                      videos: [
+                        ...(form.videos ?? []),
+                        form.__newVideo.trim(),
+                      ],
+                      __newVideo: "",
+                    });
                   }}
                 >
                   Añadir
                 </button>
               </div>
 
-              {/* Lista de vídeos */}
-              <div className="space-y-2">
-                {(form[key] || []).map((url: string, idx: number) => {
-                  const extractId = (u: string) => {
-                    const m = u.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/);
-                    return m ? m[1] : "";
-                  };
-
-                  const id = extractId(url);
-                  const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
-
-                  return (
-                    <div key={idx} className="flex items-center gap-3 border p-2 rounded">
-
-                      <div className="w-28 h-16 bg-gray-100 rounded overflow-hidden">
-                        {thumb ? (
-                          <img src={thumb} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="flex items-center justify-center w-full h-full text-xs text-gray-500">
-                            Sin vista previa
-                          </div>
-                        )}
-                      </div>
-
-                      <input
-                        type="text"
-                        className="flex-1 border p-2 rounded"
-                        value={url}
-                        onChange={(e) => {
-                          const arr = [...form[key]];
-                          arr[idx] = e.target.value;
-                          updateField(key, arr);
-                        }}
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const arr = [...form[key]];
-                          arr.splice(idx, 1);
-                          updateField(key, arr);
-                        }}
-                        className="bg-red-600 text-white px-2 py-1 rounded text-sm"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {!form[key]?.length && (
-                <p className="text-sm text-gray-500">No hay vídeos todavía.</p>
-              )}
+              {form.videos?.map((v: string, i: number) => (
+                <div
+                  key={i}
+                  className="flex gap-3 items-center border p-2 rounded"
+                >
+                  <input
+                    type="text"
+                    value={v}
+                    onChange={(e) => {
+                      const arr = [...form.videos];
+                      arr[i] = e.target.value;
+                      setForm({ ...form, videos: arr });
+                    }}
+                    className="flex-1 border p-2 rounded"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const arr = [...form.videos];
+                      arr.splice(i, 1);
+                      setForm({ ...form, videos: arr });
+                    }}
+                    className="bg-red-600 text-white px-2 py-1 rounded"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* SELECT */}
-          {cfg.type === "select" && (
+          {/* Select */}
+          {key !== "videos" && cfg.type === "select" && (
             <select
-              className="border p-2 rounded"
               value={form[key] ?? ""}
-              onChange={(e) => updateField(key, e.target.value)}
-              disabled={!cfg.options || cfg.options.length === 0}
+              onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+              className="border p-2 rounded"
             >
-              {!cfg.options?.length ? (
-                <option value="">Cargando opciones...</option>
-              ) : (
-                <>
-                  <option value="">Seleccionar...</option>
-                  {cfg.options.map((o) =>
-                    typeof o === "string" ? (
-                      <option key={o} value={o}>
-                        {o}
-                      </option>
-                    ) : (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    )
-                  )}
-                </>
+              <option value="">Seleccionar...</option>
+              {cfg.options?.map((o) =>
+                typeof o === "string" ? (
+                  <option key={o}>{o}</option>
+                ) : (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                )
               )}
             </select>
           )}
 
-          {/* INPUTS */}
-          {key !== "videos" && (cfg.type === "text" || cfg.type === "number") && (
+          {/* Inputs generales */}
+          {cfg.type === "text" ||
+            (cfg.type === "number" && key !== "videos" && (
+              <input
+                type={cfg.type}
+                className="border p-2 rounded"
+                value={form[key] ?? ""}
+                onChange={(e) =>
+                  setForm({ ...form, [key]: e.target.value })
+                }
+              />
+            ))}
+
+          {/* Fecha */}
+          {cfg.type === "date" && (
             <input
-              type={cfg.type}
+              type="date"
               className="border p-2 rounded"
-              value={form[key] ?? ""}
-              onChange={(e) => updateField(key, e.target.value)}
+              value={form[key]?.substring(0, 10) ?? ""}
+              onChange={(e) =>
+                setForm({ ...form, [key]: e.target.value })
+              }
             />
           )}
         </div>
       ))}
 
-      {/* IMÁGENES */}
-
+      {/* SUBIR NUEVAS FOTOS */}
       <div>
         <label className="font-bold">Imágenes</label>
         <input type="file" multiple onChange={handleFileChange} />
       </div>
 
-      {/* PREVIEW */}
-      {preview.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 mt-3">
-          {preview.map((src, i) => (
-            <div key={i} className="relative group w-20 h-20 rounded overflow-hidden">
-              <img src={src} className="w-full h-full object-cover" />
-              <button
-                type="button"
-                onClick={() => {
-                  setPreview(preview.filter((_, z) => z !== i));
-                  setFiles(files.filter((_, z) => z !== i));
-                }}
-                className="absolute top-1 right-1 bg-red-600 text-white text-xs px-1.5 rounded-full opacity-0 group-hover:opacity-100"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+      {/* =================== */}
+      {/*   PREVIEWS NUEVAS   */}
+      {/* =================== */}
+      {newFotos.length > 0 && (
+        <div>
+          <p className="text-sm text-gray-500 mb-1">Nuevas imágenes</p>
+          <div className="grid grid-cols-3 gap-3 mt-2">
+            {newFotos.map((f) => (
+              <PreviewImage key={f.id} foto={f} />
+            ))}
+          </div>
         </div>
       )}
 
-      {/* EXISTENTES + Drag */}
+      {/* ====================== */}
+      {/*  EXISTENTES ORDENABLES */}
+      {/* ====================== */}
       {existingFotos.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 mt-3">
-          {existingFotos.map((foto, index) => (
-            <div
-              key={foto.id}
-              draggable
-              onDragStart={() => handleDragStart(index)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => handleDrop(index)}
-              className="relative group w-20 h-20 rounded border overflow-hidden"
-            >
-              <img src={foto.url} className="w-full h-full object-cover" />
+        <div>
+          <p className="text-sm text-gray-500 mb-1">Imágenes existentes</p>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setExistingFotos((prev) => prev.filter((f) => f.id !== foto.id))
-                }
-                className="absolute top-1 right-1 bg-red-600 text-white text-xs px-1.5 rounded-full opacity-0 group-hover:opacity-100"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={existingFotos.map((f) => f.id)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid grid-cols-3 gap-3 mt-2">
+                {existingFotos.map((f) => (
+                  <SortableImage key={f.id} foto={f} />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         </div>
       )}
 
-      <div className="flex gap-3">
+      {/* BOTONES */}
+      <div className="flex gap-3 pt-4">
         <button
           type="submit"
-          disabled={uploading}
-          className="bg-blue-600 text-white px-4 py-2 rounded shadow disabled:opacity-50"
+          className="bg-blue-600 text-white px-4 py-2 rounded shadow"
         >
           Guardar
         </button>

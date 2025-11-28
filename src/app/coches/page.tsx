@@ -6,6 +6,27 @@ import { motion } from "framer-motion";
 import { CarForFrontend } from "@/types/CarForFrontend";
 import CarVideos from "@/components/CarVideos";
 
+export async function generateMetadata({ params }) {
+  const car = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${params.id}`)
+    .then(r => r.json());
+
+  if (!car) return { title: "Coche no encontrado" };
+
+  return {
+    title: `${car.marca} ${car.model} - ${car.precio}€`,
+    description: `Coche ${car.marca} ${car.model}, año ${car.anoFabricacion}, color ${car.color}, combustible ${car.combustible}. Precio ${car.precio}€. Información completa aquí.`,
+    openGraph: {
+      title: `${car.marca} ${car.model}`,
+      description: `Precio: ${car.precio}€, Año: ${car.anoFabricacion}`,
+      images: car.imagenes?.[0]?.url ? [car.imagenes[0].url] : [],
+    },
+    alternates: {
+      canonical: `/coches/${params.id}`,
+    },
+  };
+}
+
+
 export default function CochesPage() {
   const [cars, setCars] = useState<CarForFrontend[]>([]);
   const [filtered, setFiltered] = useState<CarForFrontend[]>([]);

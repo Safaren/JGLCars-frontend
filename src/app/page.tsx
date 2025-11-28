@@ -1,79 +1,78 @@
-"use client";
+// src/app/page.tsx
+import React from "react";
+import HomeClient from "@/components/HomeClient";
+import { siteConfig } from "./metadata";
 
-import { useEffect, useState } from "react";
-import CarCard from "@/components/CarCard";
-import CarCarousel from "@/components/CarCarousel";
-import { getCars } from "@/lib/api";
-import { CarForFrontend } from "@/types/CarForFrontend";
+export const revalidate = 60; // ISR corto: refresca cada 60s
 
-export const dynamic = "force-dynamic";
-
-export default function HomePage() {
-  const [cars, setCars] = useState<CarForFrontend[]>([]);
-  const [carouselData, setCarouselData] = useState<any[]>([]);
-
-  // 1. Cargar coches
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await getCars();
-        setCars(data);
-      } catch {
-        setCars([]);
+export async function generateMetadata(): Promise<any> {
+  // Traemos algunos coches para enriquecer openGraph (puede fallar en dev si API no accesible)
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  let firstImage = null;
+  try {
+    const res = await fetch(`${apiUrl}/cars`, { cache: "force-cache" });
+    if (res.ok) {
+      const cars = await res.json();
+      if (cars && cars.length > 0 && cars[0].imagenes?.length > 0) {
+        firstImage = cars[0].imagenes[0].url;
       }
-    };
-    load();
-  }, []);
+    }
+  } catch (e) {
+    // ignoramos errores de fetch para no romper el build
+  }
 
-  // 2. Generar datos del carrusel con toda la información de cada imagen
-  useEffect(() => {
-    if (cars.length === 0) return;
+  return {
+    title: siteConfig.name,
+    description: siteConfig.description,
+    openGraph: {
+      title: siteConfig.name,
+      description: siteConfig.description,
+      images: firstImage ? [firstImage] : undefined,
+      url: siteConfig.url,
+      siteName: siteConfig.name,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: siteConfig.name,
+      description: siteConfig.description,
+      images: firstImage ? [firstImage] : undefined,
+    },
+  };
+}
 
-    const destacados = cars.filter((c) => c.destacado);
+export default async function Page() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-    const lista = destacados.flatMap((c) =>
-      c.carruselFotos.map((url) => ({
-        url,
-        carId: c.id,
-        marca: c.marca,
-        model: c.model,
-        combustible: c.combustible,
-        precio: c.precio,
-        anoFabricacion: c.anoFabricacion,
-      }))
-    );
-
-    setCarouselData(lista);
-  }, [cars]);
+  // Cargamos coches en el servidor para SSR/SEO (mejor para indexación)
+  let cars = [];
+  try {
+    const res = await fetch(`${apiUrl}/cars`, { cache: "no-store" });
+    if (res.ok) cars = await res.json();
+  } catch (e) {
+    cars = [];
+  }
 
   return (
-    <main className="min-h-screen px-6 lg:px-16 mt-20">
-
-      {/* Carrusel con todos los datos */}
-      <CarCarousel
-        images={carouselData.map((d) => d.url)}
-        marca={carouselData[0]?.marca}
-        model={carouselData[0]?.model}
-        combustible={carouselData[0]?.combustible}
-        precio={carouselData[0]?.precio}
-        anoFabricacion={carouselData[0]?.anoFabricacion}
-        carId={carouselData[0]?.carId}
-        interval={3000}
+    <>
+      {/* JSON-LD Organization (mejora resultados de marca) */}
+      <script
+        key="org-jsonld"
+        id="org-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: siteConfig.name,
+            url: siteConfig.url,
+            logo: siteConfig.logo || `${siteConfig.url}/logo.png`,
+            sameAs: siteConfig.sameAs || [],
+          }),
+        }}
       />
 
-      <h2 className="text-3xl text-neutral-50 font-bold mb-6 text-center mt-10">
-        Coches de ocasión disponibles
-      </h2>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-16">
-        {cars.length > 0 ? (
-          cars.map((car) => <CarCard key={car.id} car={car} />)
-        ) : (
-          <p className="text-gray-500">
-            No hay coches disponibles en este momento.
-          </p>
-        )}
-      </div>
-    </main>
+      {/* Renderizamos el cliente que contiene la lógica de uso de estado y hooks */}
+      <HomeClient initialCars={cars} />
+    </>
   );
 }

@@ -1,188 +1,33 @@
- // JGLCars-frontend/src/lib/api.ts
-
-/*"use client";
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-console.log("🔥 FRONTEND API BASE:", API);
-
-/* ============================================================
-   FETCH BASE — con JSON seguro + credenciales
-============================================================ 
-async function apiFetch(path: string, options: any = {}) {
-  const url = `${API}${path}`;
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-
-  const isAuthRequest =
-    options.credentials === "include" ||
-    path.startsWith("/auth") ||
-    path.startsWith("/perfil") ||
-    path.startsWith("/admin");
-
-  const res = await fetch(url, {
-    //credentials: "include", // 🔥 NECESARIO EN PRODUCCIÓN
-    ...options,
-    headers: {
-      Accept: "application/json",
-      ...(options.headers || {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-
-  const text = await res.text();
-
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    console.error("❌ Respuesta no JSON:", text);
-    throw new Error("El servidor devolvió HTML en lugar de JSON");
-  }
-
-  if (!res.ok) {
-    console.error("❌ ERROR API", json);
-    throw new Error(json.error || "Error API");
-  }
-
-  return json;
-}
-
-/* ============================================================
-   AUTH
-============================================================ 
-export async function login(email: string, password: string) {
-  const res = await fetch(`${API}/auth/login`, {
-    method: "POST",
-    credentials: "include", // 🔥 NECESARIO
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, password }),
-  });
-
-  const text = await res.text();
-
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    console.error("❌ Respuesta NO JSON en login:", text);
-    throw new Error("Respuesta no válida desde /auth/login");
-  }
-
-  return json;
-}
-
-export function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-}
-
-/* ============================================================
-   COCHES
-============================================================ 
-export async function getCars() {
-  return apiFetch(`/cars`);
-}
-
-export async function addCar(data: any) {
-  return apiFetch(`/cars`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateCar(id: number, data: any) {
-  return apiFetch(`/cars/${id}`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteCar(id: number) {
-  return apiFetch(`/cars/${id}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-}
-
-/* ============================================================
-   PIEZAS
-============================================================ 
-export async function getPiezas() {
-  return apiFetch(`/piezas`, );
-}
-
-export async function addPieza(data: any) {
-  return apiFetch(`/piezas`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updatePieza(id: number, data: any) {
-  return apiFetch(`/piezas/${id}`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deletePieza(id: number) {
-  return apiFetch(`/piezas/${id}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-}
-
-export async function getPieza(id: number) {
-  return apiFetch(`/piezas/${id}`, { credentials: "include" });
-}
-*/
-
 "use client";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 console.log("🔥 FRONTEND API BASE:", API);
 
 /* ============================================================
-   DETECTAR SI UNA RUTA ES PRIVADA O PÚBLICA
+   FUNCION PARA DETECTAR RUTAS PROTEGIDAS
 ============================================================ */
-function isProtectedRoute(path: string) {
-  return (
-    path.startsWith("/auth") ||
-    path.startsWith("/cars") && (path.includes("POST") || path.includes("PUT") || path.includes("DELETE")) ||
-    path.startsWith("/piezas") && (path.includes("POST") || path.includes("PUT") || path.includes("DELETE")) ||
-    path.startsWith("/admin") ||
-    path.startsWith("/contacto") && false  // contacto es PÚBLICO
-  );
+function isProtected(method: string, path: string) {
+  // Rutas públicas
+  if (method === "GET" && path.startsWith("/cars")) return false;
+  if (method === "GET" && path.startsWith("/piezas")) return false;
+
+  // Todo lo demás es privado
+  return true;
 }
 
 /* ============================================================
-   FETCH BASE PRO — con JSON seguro + manejo robusto de errores
+   FETCH BASE PRO — SIEMPRE DEVUELVE JSON Y TOKEN CUANDO TOCA
 ============================================================ */
 async function apiFetch(path: string, options: any = {}) {
   const url = `${API}${path}`;
+  const method = options.method || "GET";
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  // Detectar si la ruta es privada
+  // Determinar si la ruta es privada
   const protectedRequest =
-    options.protected === true ||
-    path.startsWith("/auth") ||
-    path.startsWith("/cars/") && options.method !== "GET" ||
-    path.startsWith("/piezas/") && options.method !== "GET" ||
-    path.includes("favoritos");
+    options.protected === true || isProtected(method, path);
 
   const res = await fetch(url, {
     ...options,
@@ -190,7 +35,9 @@ async function apiFetch(path: string, options: any = {}) {
     headers: {
       Accept: "application/json",
       ...(options.headers || {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(protectedRequest && token
+        ? { Authorization: `Bearer ${token}` }
+        : {}),
     },
   });
 
@@ -200,8 +47,8 @@ async function apiFetch(path: string, options: any = {}) {
   try {
     json = JSON.parse(text);
   } catch {
-    console.error("❌ backend devolvió HTML", text);
-    throw new Error("Error CORS o servidor");
+    console.error("❌ backend devolvió HTML:", text);
+    throw new Error("Error CORS o el servidor no devolvió JSON válido");
   }
 
   if (!res.ok) {
@@ -218,7 +65,7 @@ async function apiFetch(path: string, options: any = {}) {
 export async function login(email: string, password: string) {
   return apiFetch(`/auth/login`, {
     method: "POST",
-    credentials: "include",
+    protected: true,
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -233,15 +80,18 @@ export function logout() {
 }
 
 /* ============================================================
-   COCHES (PÚBLICO GET /cars)
+   COCHES
 ============================================================ */
 export async function getCars() {
- return apiFetch(`/cars`, { method: "GET" });
+  return apiFetch(`/cars`, {
+    method: "GET",
+  });
 }
 
 export async function addCar(data: any) {
   return apiFetch(`/cars`, {
     method: "POST",
+    protected: true,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
@@ -250,6 +100,7 @@ export async function addCar(data: any) {
 export async function updateCar(id: number, data: any) {
   return apiFetch(`/cars/${id}`, {
     method: "PUT",
+    protected: true,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
@@ -258,6 +109,7 @@ export async function updateCar(id: number, data: any) {
 export async function deleteCar(id: number) {
   return apiFetch(`/cars/${id}`, {
     method: "DELETE",
+    protected: true,
   });
 }
 
@@ -265,12 +117,15 @@ export async function deleteCar(id: number) {
    PIEZAS
 ============================================================ */
 export async function getPiezas() {
-  return apiFetch(`/piezas`);
+  return apiFetch(`/piezas`, {
+    method: "GET",
+  });
 }
 
 export async function addPieza(data: any) {
   return apiFetch(`/piezas`, {
     method: "POST",
+    protected: true,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
@@ -279,6 +134,7 @@ export async function addPieza(data: any) {
 export async function updatePieza(id: number, data: any) {
   return apiFetch(`/piezas/${id}`, {
     method: "PUT",
+    protected: true,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
@@ -287,9 +143,12 @@ export async function updatePieza(id: number, data: any) {
 export async function deletePieza(id: number) {
   return apiFetch(`/piezas/${id}`, {
     method: "DELETE",
+    protected: true,
   });
 }
 
 export async function getPieza(id: number) {
-  return apiFetch(`/piezas/${id}`);
+  return apiFetch(`/piezas/${id}`, {
+    method: "GET",
+  });
 }

@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import { CarForFrontend } from "@/types/CarForFrontend";
 import EtiquetaDGT from "@/components/EtiquetaDGT";
 
@@ -22,8 +23,6 @@ const IconPotencia = () => (
     <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
   </svg>
 );
-
-
 
 // ⛽ ICONO COMBUSTIBLE
 const IconCombustible = () => (
@@ -50,7 +49,6 @@ const IconKm = () => (
   </svg>
 );
 
-
 /* ============================================
    COMPONENTE PRINCIPAL
 ============================================ */
@@ -58,6 +56,28 @@ const IconKm = () => (
 export default function CarCard({ car }: { car: CarForFrontend }) {
   const img = car.imagenes?.[0]?.url || "/no-image.jpg";
   const href = `/coches/${car.id}`;
+
+  // ❤️ Estado del corazón
+  const [liked, setLiked] = useState(false);
+
+   const handleHeartClick = (e: React.MouseEvent) => {
+    // Evita que se abra la ficha del coche
+    e.preventDefault();
+    e.stopPropagation();
+    if (liked) return;
+
+    setLiked(true);
+
+    // Texto pre-relleno para el formulario
+    const mensaje = `Me interesa el coche ${car.marca} ${car.model}`;
+
+    // Redirección a los 3 segundos con mensaje pre-cargado
+    setTimeout(() => {
+      window.location.href = 
+        `/contacto?carId=${car.id}&mensaje=${encodeURIComponent(mensaje)}`;
+    }, 300);
+  };
+
 
   return (
     <motion.div
@@ -80,6 +100,48 @@ export default function CarCard({ car }: { car: CarForFrontend }) {
             fill
             className="object-cover"
           />
+
+          {/* ❤️ CORAZÓN SIEMPRE VISIBLE (botón) */}
+          <motion.button
+            onClick={handleHeartClick}
+            aria-label="Me interesa"
+            className="
+              absolute top-3 right-3 
+              p-2 rounded-full 
+              bg-white/30 backdrop-blur 
+              shadow-lg transition
+              flex items-center justify-center
+            "
+            // pequeño feedback al tocar
+            whileTap={{ scale: 0.95 }}
+          >
+            {/* SVG corazón: stroke blanco, fill animable vía Framer Motion */}
+            <motion.svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="white"
+              // animaciones: pop corto y relleno largo (3s)
+              animate={{
+                scale: liked ? [1, 1.18, 1] : 1,
+                fill: liked ? "#ff6b81" : "transparent",
+              }}
+              transition={{
+                scale: { duration: 0.35, ease: "easeOut" },
+                fill: { duration: 3, ease: "linear" }, // relleno suave en 3s
+              }}
+              className="w-7 h-7"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.172 5.172a4.5 4.5 0 016.364 0L12 
+                   7.636l2.464-2.464a4.5 4.5 0 116.364 
+                   6.364L12 21.364l-8.828-8.828a4.5 
+                   4.5 0 010-6.364z"
+              />
+            </motion.svg>
+          </motion.button>
 
           {/* Año en óvalo naranja */}
           {car.anoFabricacion && (
@@ -108,39 +170,35 @@ export default function CarCard({ car }: { car: CarForFrontend }) {
           </p>
 
           {/* Línea de especificaciones */}
-{/* Línea de especificaciones */}
-<div className="text-gray-700 text-sm flex flex-wrap items-center gap-x-6 mt-2">
+          <div className="text-gray-700 text-sm flex flex-wrap items-center gap-x-6 mt-2">
+            {car.potencia && (
+              <span className="flex items-center gap-1">
+                <IconPotencia />
+                <strong className="text-gray-800">{car.potencia} CV</strong>
+              </span>
+            )}
 
-  {car.potencia && (
-    <span className="flex items-center gap-1">
-      <IconPotencia />
-      <strong className="text-gray-800">{car.potencia} CV</strong>
-    </span>
-  )}
+            {car.combustible && (
+              <span className="flex items-center gap-1">
+                <IconCombustible />
+                <strong className="text-gray-800">{car.combustible}</strong>
+              </span>
+            )}
 
-  {car.combustible && (
-    <span className="flex items-center gap-1">
-      <IconCombustible />
-      <strong className="text-gray-800">{car.combustible}</strong>
-    </span>
-  )}
+            {car.ambiental && (
+              <span className="flex items-center">
+                <EtiquetaDGT tipo={car.ambiental} size={32} />
+              </span>
+            )}
 
-  {car.ambiental && (
-    <span className="flex items-center">
-      <EtiquetaDGT tipo={car.ambiental} size={32} />
-    </span>
-  )}
-
-  {car.km != null && (
-    <span className="flex items-center gap-1">
-      <strong className="text-gray-800">
-        {car.km.toLocaleString()} km
-      </strong>
-    </span>
-  )}
-
-</div>
-
+            {car.km != null && (
+              <span className="flex items-center gap-1">
+                <strong className="text-gray-800">
+                  {car.km.toLocaleString()} km
+                </strong>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* BOTÓN */}

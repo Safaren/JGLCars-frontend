@@ -34,7 +34,7 @@ export default function NavBar() {
         {!user ? (
           <>
             <Link href="/login" className="hover:text-blue-600 transition">Login</Link>
-            <Link href="/registro" className="hover:text-blue-600 transition">Registrarse</Link>
+           {/* <Link href="/registro" className="hover:text-blue-600 transition">Registrarse</Link> */}
           </>
         ) : (
           <>

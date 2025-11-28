@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+
+
+  
   // =======================================
   // BACKEND PROXY → LOCAL + PRODUCCIÓN
   // =======================================
