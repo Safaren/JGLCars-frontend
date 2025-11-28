@@ -4,28 +4,6 @@ import { useEffect, useState } from "react";
 import CarCard from "@/components/CarCard";
 import { motion } from "framer-motion";
 import { CarForFrontend } from "@/types/CarForFrontend";
-import CarVideos from "@/components/CarVideos";
-
-export async function generateMetadata({ params }) {
-  const car = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${params.id}`)
-    .then(r => r.json());
-
-  if (!car) return { title: "Coche no encontrado" };
-
-  return {
-    title: `${car.marca} ${car.model} - ${car.precio}€`,
-    description: `Coche ${car.marca} ${car.model}, año ${car.anoFabricacion}, color ${car.color}, combustible ${car.combustible}. Precio ${car.precio}€. Información completa aquí.`,
-    openGraph: {
-      title: `${car.marca} ${car.model}`,
-      description: `Precio: ${car.precio}€, Año: ${car.anoFabricacion}`,
-      images: car.imagenes?.[0]?.url ? [car.imagenes[0].url] : [],
-    },
-    alternates: {
-      canonical: `/coches/${params.id}`,
-    },
-  };
-}
-
 
 export default function CochesPage() {
   const [cars, setCars] = useState<CarForFrontend[]>([]);
@@ -35,18 +13,8 @@ export default function CochesPage() {
   // Filtros
   const [search, setSearch] = useState("");
   const [marcaFilter, setMarcaFilter] = useState("");
-  const [combustibleFilter, setCombustibleFilter] = useState("");
+  theconst [combustibleFilter, setCombustibleFilter] = useState("");
   const [maxPrecio, setMaxPrecio] = useState<number | null>(null);
-
-  const sanitizeCar = (car: any): CarForFrontend => ({
-  ...car,
-  tipoVenta:
-    car.tipoVenta === "COCHE" || car.tipoVenta === "PIEZAS"
-      ? car.tipoVenta
-      : "COCHE", // valor por defecto que quieres
-  imagenes: car.imagenes?.map((i: any) => ({ url: i.url })) ?? [],
-});
-
 
   // Cargar coches
   useEffect(() => {
@@ -88,7 +56,6 @@ export default function CochesPage() {
   useEffect(() => {
     let res = [...cars];
 
-    // Buscar por marca o modelo
     if (search.trim() !== "") {
       res = res.filter((c) =>
         `${c.marca ?? ""} ${c.model ?? ""}`
@@ -97,35 +64,23 @@ export default function CochesPage() {
       );
     }
 
-    // Filtrar marca
     if (marcaFilter !== "") {
       res = res.filter((c) => (c.marca ?? "") === marcaFilter);
     }
 
-    // Filtro combustible
     if (combustibleFilter !== "") {
       res = res.filter((c) => (c.combustible ?? "") === combustibleFilter);
     }
 
-    // Filtro precio
     if (maxPrecio !== null && maxPrecio > 0) {
-      res = res.filter(
-        (c) => typeof c.precio === "number" && c.precio <= maxPrecio
-      );
+      res = res.filter((c) => typeof c.precio === "number" && c.precio <= maxPrecio);
     }
 
     setFiltered(res);
   }, [search, marcaFilter, combustibleFilter, maxPrecio, cars]);
 
-  // MARCAS SEGURAS
-  const marcas = Array.from(
-    new Set(cars.map((c) => c.marca ?? "Sin marca"))
-  );
-
-  // COMBUSTIBLES SEGUROS
-  const combustibles = Array.from(
-    new Set(cars.map((c) => c.combustible ?? ""))
-  );
+  const marcas = Array.from(new Set(cars.map((c) => c.marca ?? "Sin marca")));
+  const combustibles = Array.from(new Set(cars.map((c) => c.combustible ?? "")));
 
   return (
     <section className="max-w-7xl mx-auto px-6 mt-20 mb-32">
@@ -140,7 +95,6 @@ export default function CochesPage() {
           grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-10
         "
       >
-        {/* Buscador */}
         <input
           type="text"
           placeholder="Buscar por marca o modelo..."
@@ -149,7 +103,6 @@ export default function CochesPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        {/* Marca */}
         <select
           className="border rounded-xl p-3"
           value={marcaFilter}
@@ -157,13 +110,10 @@ export default function CochesPage() {
         >
           <option value="">Todas las marcas</option>
           {marcas.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
+            <option key={m} value={m}>{m}</option>
           ))}
         </select>
 
-        {/* Combustible */}
         <select
           className="border rounded-xl p-3"
           value={combustibleFilter}
@@ -171,13 +121,10 @@ export default function CochesPage() {
         >
           <option value="">Todos los combustibles</option>
           {combustibles.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
+            <option key={c} value={c}>{c}</option>
           ))}
         </select>
 
-        {/* Precio máximo */}
         <input
           type="number"
           placeholder="Precio máximo (€)"
@@ -193,10 +140,7 @@ export default function CochesPage() {
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div
-              key={i}
-              className="bg-gray-200 animate-pulse h-72 rounded-2xl"
-            ></div>
+            <div key={i} className="bg-gray-200 animate-pulse h-72 rounded-2xl"></div>
           ))}
         </div>
       )}
@@ -214,15 +158,11 @@ export default function CochesPage() {
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10"
       >
         {filtered.map((car) => (
-  <div key={car.id}>
-    <CarCard car={car} />
-
-  </div>
-))}
+          <div key={car.id}>
+            <CarCard car={car} />
+          </div>
+        ))}
       </motion.div>
-      
     </section>
-
-    
   );
 }
