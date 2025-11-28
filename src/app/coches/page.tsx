@@ -13,7 +13,7 @@ export default function CochesPage() {
   // Filtros
   const [search, setSearch] = useState("");
   const [marcaFilter, setMarcaFilter] = useState("");
-  theconst [combustibleFilter, setCombustibleFilter] = useState("");
+  const [combustibleFilter, setCombustibleFilter] = useState("");
   const [maxPrecio, setMaxPrecio] = useState<number | null>(null);
 
   // Cargar coches
