@@ -1,4 +1,4 @@
-// src/app/page.tsx
+/// src/app/page.tsx
 import React from "react";
 import HomeClient from "@/components/HomeClient";
 import { siteConfig } from "./metadata";
