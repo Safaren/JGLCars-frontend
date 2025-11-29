@@ -16,7 +16,7 @@ export default function NavBar() {
     setMounted(true);
   }, []);
 
-  console.log("USER EN NAVBAR --->", user);
+
 
   // si quieres que las animaciones dependan de user, ya lo hace automáticamente
   if (!mounted) return null;

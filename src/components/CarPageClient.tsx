@@ -225,10 +225,16 @@ const items: Item[] = [
                       }
                       className="relative rounded-lg overflow-hidden shadow-sm border"
                     >
-                      <img
-                        src={item.type === "image" ? item.url : item.thumb ?? ""}
-                        className="object-cover w-full h-28"
-                      />
+                    <img
+                      src={
+                        item.type === "image"
+                          ? item.url || "/fallback-image.png"
+                          : item.thumb || "/fallback-image.png"
+                      }
+                      alt=""
+                      className="object-cover w-full h-28"
+                    />
+
 
                       {item.type === "video" && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">

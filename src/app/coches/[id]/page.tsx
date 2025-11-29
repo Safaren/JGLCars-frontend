@@ -1,22 +1,24 @@
 import CarPageClient from "@/components/CarPageClient";
 
+// Tipo para params
 interface PageParams {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 }
 
 // ⭐ METADATA DEL DETALLE DEL COCHE
 export async function generateMetadata({ params }: PageParams) {
+  const { id } = await params; // ⬅️ SOLUCIÓN
+
   const car = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/cars/${params.id}`,
+    `${process.env.NEXT_PUBLIC_API_URL}/cars/${id}`,
     { cache: "no-store" }
   ).then((r) => r.json());
 
-  if (!car)
+  if (!car) {
     return {
       title: "Coche no encontrado",
     };
+  }
 
   return {
     title: `${car.marca} ${car.model} - ${car.precio}€`,
@@ -29,6 +31,8 @@ export async function generateMetadata({ params }: PageParams) {
 }
 
 // ⭐ PÁGINA SERVER → RENDER CLIENT COMPONENT
-export default async function CarPage({ params }: { params: { id: string } }) {
-  return <CarPageClient id={params.id} />;
+export default async function CarPage({ params }: PageParams) {
+  const { id } = await params; // ⬅️ SOLUCIÓN
+
+  return <CarPageClient id={id} />;
 }
