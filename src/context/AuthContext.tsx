@@ -1,3 +1,5 @@
+// src/context/AuthContext.tsx
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -28,19 +30,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const API = process.env.NEXT_PUBLIC_API_URL;
 
-  // ===============================
-  // 🔵 CARGA INICIAL
-  // ===============================
+  // ==========================================
+  // 🔵 CARGA INICIAL (si hay usuario guardado)
+  // ==========================================
   useEffect(() => {
-    const saved = localStorage.getItem("user");
-    if (saved) setUser(JSON.parse(saved));
+    try {
+      const saved = localStorage.getItem("user");
+      if (saved) {
+        setUser(JSON.parse(saved));
+      }
+    } catch {}
 
     setLoading(false);
   }, []);
 
-  // ===============================
-  // 🔵 LOGIN NORMAL (EMAIL + PASS)
-  // ===============================
+  // ==========================================
+  // 🔵 LOGIN NORMAL (CORREGIDO)
+  // ==========================================
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const res = await fetch(`${API}/auth/login`, {
@@ -55,10 +61,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (!res.ok) return false;
 
-      const loggedUser = body.user ?? body.userData;
-      if (!loggedUser) return false;
+      // ⭐ GUARDAR TOKEN CORRECTAMENTE
+      const token = body.accessToken;
+      if (!token) {
+        console.error("❌ El backend no envió accessToken");
+        return false;
+      }
 
-      // Guardar usuario
+      localStorage.setItem("token", token);
+
+      // ⭐ GUARDAR USUARIO
+      const loggedUser: User = body.user;
       localStorage.setItem("user", JSON.stringify(loggedUser));
       setUser(loggedUser);
 
@@ -70,10 +83,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // ===============================
+  // ==========================================
   // 🔵 LOGIN SOCIAL (Google / Facebook)
-  // Se llama tras volver del callback /auth/google/callback
-  // ===============================
+  // ==========================================
   const loginSocial = async (): Promise<void> => {
     try {
       const res = await fetch(`${API}/auth/me`, {
@@ -87,9 +99,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       const data = await res.json();
 
-      // Guardar y actualizar contexto
-      localStorage.setItem("user", JSON.stringify(data));
-      setUser(data);
+      // Aquí `data.user` es el usuario real
+      const socialUser: User = data.user ?? data;
+
+      localStorage.setItem("user", JSON.stringify(socialUser));
+      setUser(socialUser);
 
       router.refresh();
     } catch (err) {
@@ -97,9 +111,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // ===============================
-  // 🔵 REFRESCAR TOKEN AUTOMÁTICAMENTE
-  // ===============================
+  // ==========================================
+  // 🔵 REFRESCAR TOKEN (placeholder)
+  // ==========================================
   const refreshToken = async () => {
     try {
       const res = await fetch(`${API}/auth/refresh`, {
@@ -115,15 +129,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // refrescar token cada 10 minutos
+  // Refrescar cada 10 min
   useEffect(() => {
     const interval = setInterval(refreshToken, 10 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // ===============================
+  // ==========================================
   // 🔵 LOGOUT
-  // ===============================
+  // ==========================================
   const logout = async () => {
     try {
       await fetch(`${API}/auth/logout`, {
@@ -132,8 +146,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     } catch {}
 
+    localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
+
     router.refresh();
     router.push("/login");
   };
@@ -155,9 +171,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// ===============================
+// ==========================================
 // 🔵 HOOK PERSONALIZADO
-// ===============================
+// ==========================================
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be inside AuthProvider");

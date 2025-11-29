@@ -37,7 +37,6 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
 
   const [form, setForm] = useState<any>(initialData || {});
 
-  // ⭐ Imagenes
   const [existingFotos, setExistingFotos] = useState<
     { id: number; url: string }[]
   >([]);
@@ -48,6 +47,19 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
   const API =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
+  // --------------------------------------------
+  // Función para añadir TOKEN automáticamente
+  // --------------------------------------------
+  const authHeaders = (extra: any = {}) => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+    return {
+      Authorization: `Bearer ${token}`,
+      ...extra,
+    };
+  };
+
   // dnd-kit sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -57,18 +69,23 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
     })
   );
 
-  // Cargar imágenes existentes desde el backend
+  // Cargar imágenes existentes
   useEffect(() => {
     if (!initialData?.id) return;
 
-    fetch(`${API}/fotos-car/${initialData.id}`)
+    fetch(`${API}/fotos-car/${initialData.id}`, {
+      headers: authHeaders(),
+    })
       .then((r) => r.json())
       .then((fotos) =>
         setExistingFotos(Array.isArray(fotos) ? fotos : [])
-      );
+      )
+      .catch(() => {
+        console.error("Error cargando imágenes existentes");
+      });
   }, [initialData]);
 
-  // Cuando cargas nuevas fotos
+  // Cargar nuevas fotos
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
 
@@ -81,7 +98,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
     setNewFotos((prev) => [...prev, ...mapped]);
   };
 
-  // Componente Sortable para EXISTING
+  // Sortable EXISTING
   function SortableImage({
     foto,
   }: {
@@ -98,7 +115,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
 
     return (
       <div className="relative group w-20 h-20 select-none">
-        {/* Papelera semicírculo */}
+        {/* BOTÓN BORRAR */}
         <button
           type="button"
           draggable={false}
@@ -113,30 +130,15 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
             absolute top-0 right-0
             w-8 h-8 flex items-center justify-center
             bg-red-600 text-white
-            shadow-xl z-50
             rounded-bl-full
             opacity-0 group-hover:opacity-100
-            transition duration-200
+            transition
           "
           style={{ transform: "translate(40%, -40%)" }}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="white"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
+          ✕
         </button>
 
-        {/* Draggable */}
         <div
           ref={setNodeRef}
           {...attributes}
@@ -154,7 +156,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
     );
   }
 
-  // UI para fotos nuevas (NO reordenables)
+  // UI fotos nuevas
   function PreviewImage({
     foto,
   }: {
@@ -162,7 +164,6 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
   }) {
     return (
       <div className="relative group w-20 h-20 select-none">
-        {/* Papelera igual que las existentes */}
         <button
           type="button"
           onClick={() =>
@@ -172,41 +173,25 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
             absolute top-0 right-0
             w-8 h-8 flex items-center justify-center
             bg-red-600 text-white
-            shadow-xl z-50
             rounded-bl-full
             opacity-0 group-hover:opacity-100
-            transition duration-200
+            transition
           "
           style={{ transform: "translate(40%, -40%)" }}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="white"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
+          ✕
         </button>
 
         <div className="w-full h-full rounded overflow-hidden border">
-          <img
-            src={foto.url}
-            className="w-full h-full object-cover"
-            alt="preview"
-          />
+          <img src={foto.url} className="w-full h-full object-cover" />
         </div>
       </div>
     );
   }
 
-  // Submit
+  // --------------------------------------------
+  // SUBMIT
+  // --------------------------------------------
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
@@ -217,23 +202,27 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
       return;
     }
 
-    // Guardar orden de las existentes
+    const id = saved.id;
+
+    // Reordenar existentes
     if (existingFotos.length > 0) {
-      await fetch(`${API}/fotos-car/reorder/${saved.id}`, {
+      await fetch(`${API}/fotos-car/reorder/${id}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           orderedImages: existingFotos.map((f) => f.url),
         }),
       });
     }
 
-    // Subir las nuevas
+    // Subir nuevas
     if (newFotos.length > 0) {
       const fd = new FormData();
       newFotos.forEach((f) => fd.append("files", f.file));
-      await fetch(`${API}/fotos-car/${saved.id}`, {
+
+      await fetch(`${API}/fotos-car/${id}`, {
         method: "POST",
+        headers: authHeaders(), // SOLO TOKEN, sin content-type
         body: fd,
       });
     }
@@ -242,7 +231,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
     onCancel();
   };
 
-  // Reordenar EXISTING al soltar
+  // Reordenar imágenes existentes
   const handleDragEnd = ({ active, over }: any) => {
     if (!over || active.id === over.id) return;
 
@@ -346,18 +335,18 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
             </select>
           )}
 
-          {/* Inputs generales */}
-          {cfg.type === "text" ||
-            (cfg.type === "number" && key !== "videos" && (
-              <input
-                type={cfg.type}
-                className="border p-2 rounded"
-                value={form[key] ?? ""}
-                onChange={(e) =>
-                  setForm({ ...form, [key]: e.target.value })
-                }
-              />
-            ))}
+          {/* Text / Number */}
+          {(cfg.type === "text" ||
+            (cfg.type === "number" && key !== "videos")) && (
+            <input
+              type={cfg.type}
+              className="border p-2 rounded"
+              value={form[key] ?? ""}
+              onChange={(e) =>
+                setForm({ ...form, [key]: e.target.value })
+              }
+            />
+          )}
 
           {/* Fecha */}
           {cfg.type === "date" && (
@@ -370,6 +359,24 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
               }
             />
           )}
+          {/* Booleanos */}
+            {cfg.type === "boolean" && (
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={!!form[key]}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      [key]: e.target.checked,
+                    })
+                  }
+                  className="w-4 h-4"
+                />
+                <span>{cfg.label}</span>
+              </label>
+            )}
+
         </div>
       ))}
 
@@ -379,9 +386,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
         <input type="file" multiple onChange={handleFileChange} />
       </div>
 
-      {/* =================== */}
-      {/*   PREVIEWS NUEVAS   */}
-      {/* =================== */}
+      {/* PREVIEW NUEVAS */}
       {newFotos.length > 0 && (
         <div>
           <p className="text-sm text-gray-500 mb-1">Nuevas imágenes</p>
@@ -393,9 +398,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
         </div>
       )}
 
-      {/* ====================== */}
-      {/*  EXISTENTES ORDENABLES */}
-      {/* ====================== */}
+      {/* EXISTENTES ORDENABLES */}
       {existingFotos.length > 0 && (
         <div>
           <p className="text-sm text-gray-500 mb-1">Imágenes existentes</p>

@@ -1,154 +1,175 @@
-"use client";
+// lib/api.ts
+// ==========================================
+// API CLIENT con TOKEN SEGURO (Next.js 16 / Turbopack compatible)
+// ==========================================
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-console.log("🔥 FRONTEND API BASE:", API);
+const API = process.env.NEXT_PUBLIC_API_URL;
 
-/* ============================================================
-   FUNCION PARA DETECTAR RUTAS PROTEGIDAS
-============================================================ */
-function isProtected(method: string, path: string) {
-  // Rutas públicas
-  if (method === "GET" && path.startsWith("/cars")) return false;
-  if (method === "GET" && path.startsWith("/piezas")) return false;
+// ------------------------------------------
+// Lee token de forma segura (solo si existe)
+// ------------------------------------------
+function getLocalToken() {
+  try {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("token");
+    }
+  } catch {}
 
-  // Todo lo demás es privado
-  return true;
+  return null;
 }
 
-/* ============================================================
-   FETCH BASE PRO — SIEMPRE DEVUELVE JSON Y TOKEN CUANDO TOCA
-============================================================ */
-async function apiFetch(path: string, options: any = {}) {
-  const url = `${API}${path}`;
-  const method = options.method || "GET";
+// ------------------------------------------
+// Headers con token automático (fallback)
+// ------------------------------------------
+function authHeaders(extra: Record<string, any> = {}) {
+  const token = getLocalToken();
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  return {
+    Authorization: token ? `Bearer ${token}` : "",
+    ...extra,
+  };
+}
 
-  // Determinar si la ruta es privada
-  const protectedRequest =
-    options.protected === true || isProtected(method, path);
-
-  const res = await fetch(url, {
-    ...options,
-    credentials: protectedRequest ? "include" : "omit",
-    headers: {
-      Accept: "application/json",
-      ...(options.headers || {}),
-      ...(protectedRequest && token
-        ? { Authorization: `Bearer ${token}` }
-        : {}),
-    },
-  });
-
-  const text = await res.text();
-  let json;
-
-  try {
-    json = JSON.parse(text);
-  } catch {
-    console.error("❌ backend devolvió HTML:", text);
-    throw new Error("Error CORS o el servidor no devolvió JSON válido");
-  }
+// ------------------------------------------
+// Helper para peticiones
+// ------------------------------------------
+async function request(url: string, options: RequestInit = {}) {
+  const res = await fetch(url, options);
 
   if (!res.ok) {
-    console.error("❌ ERROR API", json);
-    throw new Error(json.error || "Error API");
+    let msg = `Error ${res.status}`;
+    try {
+      const data = await res.json();
+      msg = data.message || msg;
+    } catch {}
+    throw new Error(msg);
   }
 
-  return json;
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
-/* ============================================================
-   AUTH
-============================================================ */
-export async function login(email: string, password: string) {
-  return apiFetch(`/auth/login`, {
-    method: "POST",
-    protected: true,
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, password }),
+// ==========================================
+//   AHORA LAS FUNCIONES ACEPTAN TOKEN OPCIONAL
+//   (si no lo envías, usa authHeaders() auto)
+// ==========================================
+
+// ------------------------------------------
+// GET ALL CARS
+// ------------------------------------------
+export async function getCars(token?: string) {
+  return await request(`${API}/cars`, {
+    headers: token
+      ? { Authorization: `Bearer ${token}` }
+      : authHeaders(),
   });
 }
 
-export function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-}
-
-/* ============================================================
-   COCHES
-============================================================ */
-export async function getCars() {
-  return apiFetch(`/cars`, {
-    method: "GET",
+// ------------------------------------------
+// GET ONE CAR
+// ------------------------------------------
+export async function getCar(id: number, token?: string) {
+  return await request(`${API}/cars/${id}`, {
+    headers: token
+      ? { Authorization: `Bearer ${token}` }
+      : authHeaders(),
   });
 }
 
-export async function addCar(data: any) {
-  return apiFetch(`/cars`, {
+// ------------------------------------------
+// ADD CAR
+// ------------------------------------------
+export async function addCar(data: any, token?: string) {
+  return await request(`${API}/cars`, {
     method: "POST",
-    protected: true,
-    headers: { "Content-Type": "application/json" },
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }
+      : authHeaders({ "Content-Type": "application/json" }),
+
     body: JSON.stringify(data),
   });
 }
 
-export async function updateCar(id: number, data: any) {
-  return apiFetch(`/cars/${id}`, {
+// ------------------------------------------
+// UPDATE CAR
+// ------------------------------------------
+export async function updateCar(id: number, data: any, token?: string) {
+  return await request(`${API}/cars/${id}`, {
     method: "PUT",
-    protected: true,
-    headers: { "Content-Type": "application/json" },
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }
+      : authHeaders({ "Content-Type": "application/json" }),
+
     body: JSON.stringify(data),
   });
 }
 
-export async function deleteCar(id: number) {
-  return apiFetch(`/cars/${id}`, {
+// ------------------------------------------
+// DELETE CAR
+// ------------------------------------------
+export async function deleteCar(id: number, token?: string) {
+  return await request(`${API}/cars/${id}`, {
     method: "DELETE",
-    protected: true,
+    headers: token
+      ? { Authorization: `Bearer ${token}` }
+      : authHeaders(),
   });
 }
 
-/* ============================================================
-   PIEZAS
-============================================================ */
-export async function getPiezas() {
-  return apiFetch(`/piezas`, {
-    method: "GET",
-  });
-}
+// ==========================================
+//  CONFIGURACIÓN CARRUSEL Y FOTOS
+// ==========================================
 
-export async function addPieza(data: any) {
-  return apiFetch(`/piezas`, {
-    method: "POST",
-    protected: true,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updatePieza(id: number, data: any) {
-  return apiFetch(`/piezas/${id}`, {
+// UPDATE CARRUSEL
+export async function updateCarrusel(id: number, data: any, token?: string) {
+  return await request(`${API}/cars/carrusel/${id}`, {
     method: "PUT",
-    protected: true,
-    headers: { "Content-Type": "application/json" },
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }
+      : authHeaders({ "Content-Type": "application/json" }),
+
     body: JSON.stringify(data),
   });
 }
 
-export async function deletePieza(id: number) {
-  return apiFetch(`/piezas/${id}`, {
-    method: "DELETE",
-    protected: true,
+// REORDENAR FOTOS
+export async function reorderImages(id: number, orderedImages: string[], token?: string) {
+  return await request(`${API}/fotos-car/reorder/${id}`, {
+    method: "POST",
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }
+      : authHeaders({ "Content-Type": "application/json" }),
+
+    body: JSON.stringify({ orderedImages }),
   });
 }
 
-export async function getPieza(id: number) {
-  return apiFetch(`/piezas/${id}`, {
-    method: "GET",
+// SUBIR FOTOS NUEVAS
+export async function uploadImages(id: number, files: File[], token?: string) {
+  const fd = new FormData();
+  files.forEach((f) => fd.append("files", f));
+
+  return await fetch(`${API}/fotos-car/${id}`, {
+    method: "POST",
+    headers: token
+      ? { Authorization: `Bearer ${token}` }
+      : authHeaders(),
+
+    body: fd,
   });
 }
