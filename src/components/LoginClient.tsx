@@ -11,7 +11,7 @@ export default function LoginClient() {
   const router = useRouter();
   const params = useSearchParams();
 
-  const { login, loginSocial } = useAuth();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,28 +20,7 @@ export default function LoginClient() {
 
   const API = process.env.NEXT_PUBLIC_API_URL;
 
-  // =======================================================
-  // 🔥 AUTO-LOGIN DESPUÉS DE GOOGLE/FACEBOOK
-  // =======================================================
-  useEffect(() => {
-    const oauth = params.get("oauth");
 
-    if (oauth === "success") {
-      console.log("🔵 Detectado callback OAuth → loginSocial()");
-      (async () => {
-        await loginSocial();
-
-        const saved = localStorage.getItem("user");
-        const user = saved ? JSON.parse(saved) : null;
-
-        if (user?.rol?.toLowerCase() === "admin") {
-          router.push("/admin");
-        } else {
-          router.push("/");
-        }
-      })();
-    }
-  }, [params]);
 
   // =======================================================
   // 🔥 LOGIN NORMAL
@@ -73,13 +52,6 @@ export default function LoginClient() {
   // =======================================================
   // 🔥 LOGIN SOCIAL
   // =======================================================
-  const loginGoogle = () => {
-    window.location.href = `${API}/auth/google`;
-  };
-
-  const loginFacebook = () => {
-    window.location.href = `${API}/auth/facebook`;
-  };
 
   return (
     <motion.section
