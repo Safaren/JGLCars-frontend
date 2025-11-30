@@ -118,31 +118,4 @@
     return res.json();
     }
 
-    // ─────────────────────────────────────────
-    // PIEZAS (admin)
-    // ─────────────────────────────────────────
 
-    export async function addPieza(data: any) {
-    const res = await fetchWithRefresh(`/piezas`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-    });
-    return res.json();
-    }
-
-    export async function updatePieza(id: number, data: any) {
-    const res = await fetchWithRefresh(`/piezas/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-    });
-    return res.json();
-    }
-
-    export async function deletePieza(id: number) {
-    const res = await fetchWithRefresh(`/piezas/${id}`, {
-        method: "DELETE",
-    });
-    return res.json();
-    }   

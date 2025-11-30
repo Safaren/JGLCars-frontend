@@ -1,46 +1,27 @@
 // lib/api.ts
-// ==========================================
-// API CLIENT con TOKEN SEGURO (Next.js 16 / Turbopack compatible)
-// ==========================================
+// =======================================================
+// API Client basado al 100% en cookies httpOnly
+// SIN localStorage
+// SIN Authorization headers
+// compatible con Next.js 16 + Turbopack
+// =======================================================
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 // ------------------------------------------
-// Lee token de forma segura (solo si existe)
-// ------------------------------------------
-function getLocalToken() {
-  try {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("token");
-    }
-  } catch {}
-
-  return null;
-}
-
-// ------------------------------------------
-// Headers con token automático (fallback)
-// ------------------------------------------
-function authHeaders(extra: Record<string, any> = {}) {
-  const token = getLocalToken();
-
-  return {
-    Authorization: token ? `Bearer ${token}` : "",
-    ...extra,
-  };
-}
-
-// ------------------------------------------
-// Helper para peticiones
+// Helper de peticiones con cookies y JSON
 // ------------------------------------------
 async function request(url: string, options: RequestInit = {}) {
-  const res = await fetch(url, options);
+  const res = await fetch(url, {
+    ...options,
+    credentials: "include", // 🔥 clave para enviar cookies httpOnly
+  });
 
   if (!res.ok) {
     let msg = `Error ${res.status}`;
     try {
       const data = await res.json();
-      msg = data.message || msg;
+      msg = data.error || data.message || msg;
     } catch {}
     throw new Error(msg);
   }
@@ -52,124 +33,81 @@ async function request(url: string, options: RequestInit = {}) {
   }
 }
 
-// ==========================================
-//   AHORA LAS FUNCIONES ACEPTAN TOKEN OPCIONAL
-//   (si no lo envías, usa authHeaders() auto)
-// ==========================================
-
 // ------------------------------------------
-// GET ALL CARS
+// GET TODOS LOS COCHES
 // ------------------------------------------
-export async function getCars(token?: string) {
-  return await request(`${API}/cars`, {
-    headers: token
-      ? { Authorization: `Bearer ${token}` }
-      : authHeaders(),
-  });
+export async function getCars() {
+  return await request(`${API}/cars`);
 }
 
 // ------------------------------------------
-// GET ONE CAR
+// GET UN COCHE POR ID
 // ------------------------------------------
-export async function getCar(id: number, token?: string) {
-  return await request(`${API}/cars/${id}`, {
-    headers: token
-      ? { Authorization: `Bearer ${token}` }
-      : authHeaders(),
-  });
+export async function getCar(id: number) {
+  return await request(`${API}/cars/${id}`);
 }
 
 // ------------------------------------------
-// ADD CAR
+// CREAR COCHE
 // ------------------------------------------
-export async function addCar(data: any, token?: string) {
+export async function addCar(data: any) {
   return await request(`${API}/cars`, {
     method: "POST",
-    headers: token
-      ? {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        }
-      : authHeaders({ "Content-Type": "application/json" }),
-
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
 }
 
 // ------------------------------------------
-// UPDATE CAR
+// ACTUALIZAR COCHE
 // ------------------------------------------
-export async function updateCar(id: number, data: any, token?: string) {
+export async function updateCar(id: number, data: any) {
   return await request(`${API}/cars/${id}`, {
     method: "PUT",
-    headers: token
-      ? {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        }
-      : authHeaders({ "Content-Type": "application/json" }),
-
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
 }
 
 // ------------------------------------------
-// DELETE CAR
+// ELIMINAR COCHE
 // ------------------------------------------
-export async function deleteCar(id: number, token?: string) {
+export async function deleteCar(id: number) {
   return await request(`${API}/cars/${id}`, {
     method: "DELETE",
-    headers: token
-      ? { Authorization: `Bearer ${token}` }
-      : authHeaders(),
   });
 }
 
-// ==========================================
-//  CONFIGURACIÓN CARRUSEL Y FOTOS
-// ==========================================
+// =======================================================
+// FOTOS Y CARRUSEL
+// =======================================================
 
-// UPDATE CARRUSEL
-export async function updateCarrusel(id: number, data: any, token?: string) {
+// ACTUALIZAR CONFIGURACIÓN DEL CARRUSEL
+export async function updateCarrusel(id: number, data: any) {
   return await request(`${API}/cars/carrusel/${id}`, {
     method: "PUT",
-    headers: token
-      ? {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        }
-      : authHeaders({ "Content-Type": "application/json" }),
-
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
 }
 
 // REORDENAR FOTOS
-export async function reorderImages(id: number, orderedImages: string[], token?: string) {
+export async function reorderImages(id: number, orderedImages: string[]) {
   return await request(`${API}/fotos-car/reorder/${id}`, {
     method: "POST",
-    headers: token
-      ? {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        }
-      : authHeaders({ "Content-Type": "application/json" }),
-
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ orderedImages }),
   });
 }
 
-// SUBIR FOTOS NUEVAS
-export async function uploadImages(id: number, files: File[], token?: string) {
+// SUBIR FOTOS
+export async function uploadImages(id: number, files: File[]) {
   const fd = new FormData();
   files.forEach((f) => fd.append("files", f));
 
   return await fetch(`${API}/fotos-car/${id}`, {
     method: "POST",
-    headers: token
-      ? { Authorization: `Bearer ${token}` }
-      : authHeaders(),
-
+    credentials: "include", // 🔥 enviar cookies
     body: fd,
   });
 }
