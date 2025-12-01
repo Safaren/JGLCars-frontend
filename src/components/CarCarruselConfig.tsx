@@ -1,3 +1,5 @@
+// src/components/CarCarruselConfig.tsx
+
 "use client";
 
 import { useState, useMemo } from "react";

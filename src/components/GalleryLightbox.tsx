@@ -1,3 +1,5 @@
+// src/components/GalleryLightbox.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";

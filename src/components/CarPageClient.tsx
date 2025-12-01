@@ -1,3 +1,5 @@
+// src/components/CarPageClient.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";

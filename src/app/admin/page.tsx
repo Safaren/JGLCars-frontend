@@ -1,14 +1,16 @@
+// src/app/admin/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import CarForm from "@/components/CarForm";
 import CarTable from "@/components/CarTable";
 import CarCarruselConfig from "@/components/CarCarruselConfig";
 import CarFieldsConfig from "@/components/CarFieldsConfig";
 
-import { getCars, addCar, updateCar, deleteCar } from "@/lib/api";
+import { getCars, addCar, updateCar, deleteCar, updateCarrusel } from "@/lib/api";
 
 import { CarForFrontend } from "@/types/CarForFrontend";
 import { CarInput } from "@/types";
@@ -23,22 +25,21 @@ type CarruselConfigInput = {
 };
 
 export default function AdminPage() {
-  const router = useRouter();
   const { user, loading } = useAuth();
+  const router = useRouter();
+  const API = process.env.NEXT_PUBLIC_API_URL;
 
-  if (loading) return <p className="p-6 text-gray-500">Cargando...</p>;
-  if (!user || user.rol !== "admin") return redirect("/login");
+  console.log("AdminPage user:", user, "loading:", loading);
+
+
 
   // ---------------------------
   // ESTADO
   // ---------------------------
   const [section, setSection] = useState<"cars" | "carousel" | "fields">("cars");
-
   const [cars, setCars] = useState<CarForFrontend[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState<CarForFrontend | null>(null);
-
-  const API = process.env.NEXT_PUBLIC_API_URL;
 
   const sanitizeCar = (car: any): CarForFrontend => ({
     ...car,
@@ -50,11 +51,11 @@ export default function AdminPage() {
   });
 
   // ---------------------------
-  // CARGAR COCHES (COOKIES)
+  // CARGAR COCHES
   // ---------------------------
   const loadCars = async () => {
     try {
-      const data = await getCars(); // usa fetch con credentials en lib/api.ts
+      const data = await getCars(); // lib/api.ts ya tiene fetch + credentials
       const sanitized = data?.map((c: any) => sanitizeCar(c)) || [];
       setCars(sanitized);
     } catch (err) {
@@ -87,6 +88,15 @@ export default function AdminPage() {
     }
   };
 
+  // ---------------------------
+// PROTECCIÓN DE RUTA
+// ---------------------------
+if (loading) return <p className="p-6 text-gray-500">Cargando...</p>;
+
+if (!user || user.rol?.toLowerCase() !== "admin") {
+  return <p className="p-6 text-gray-500">Redirigiendo...</p>;
+}
+
   const volverALista = () => {
     setShowForm(false);
     setEditingCar(null);
@@ -98,12 +108,7 @@ export default function AdminPage() {
   // ---------------------------
   const saveCarruselConfig = async (id: number, data: CarruselConfigInput) => {
     try {
-      await fetch(`${API}/cars/carrusel/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
+      await updateCarrusel(id, data);
 
       toast.success("Configuración guardada ✔");
       loadCars();
@@ -130,7 +135,10 @@ export default function AdminPage() {
             await fetch(`${API}/auth/logout`, {
               method: "POST",
               credentials: "include",
+              cache: "no-store",
+              mode: "cors",
             });
+
             router.push("/login");
           }}
         >
@@ -142,33 +150,30 @@ export default function AdminPage() {
       <div className="flex gap-4 mb-8">
         <button
           onClick={() => setSection("cars")}
-          className={`px-4 py-2 rounded-lg ${
-            section === "cars"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
+          className={`px-4 py-2 rounded-lg ${section === "cars"
+            ? "bg-blue-600 text-white"
+            : "bg-gray-200 hover:bg-gray-300"
+            }`}
         >
           Gestión de coches
         </button>
 
         <button
           onClick={() => setSection("carousel")}
-          className={`px-4 py-2 rounded-lg ${
-            section === "carousel"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
+          className={`px-4 py-2 rounded-lg ${section === "carousel"
+            ? "bg-blue-600 text-white"
+            : "bg-gray-200 hover:bg-gray-300"
+            }`}
         >
           Carrusel de inicio
         </button>
 
         <button
           onClick={() => setSection("fields")}
-          className={`px-4 py-2 rounded-lg ${
-            section === "fields"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
+          className={`px-4 py-2 rounded-lg ${section === "fields"
+            ? "bg-blue-600 text-white"
+            : "bg-gray-200 hover:bg-gray-300"
+            }`}
         >
           Configurar campos
         </button>

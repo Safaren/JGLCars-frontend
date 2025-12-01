@@ -1,3 +1,5 @@
+// src/components/CarTable.tsx
+
 "use client";
 
 import { loadFieldConfig } from "@/config/carFields";

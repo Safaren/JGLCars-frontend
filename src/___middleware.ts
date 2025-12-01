@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const access = req.cookies.get("accessToken")?.value || null;
+  /*const access = req.cookies.get("accessToken")?.value || null;
   const path = req.nextUrl.pathname;
 
   // Rutas solo admin
@@ -26,7 +26,7 @@ export function middleware(req: NextRequest) {
     } catch {
       return NextResponse.redirect(new URL("/", req.url));
     }
-  }
+  }*/
 
   return NextResponse.next();
 }

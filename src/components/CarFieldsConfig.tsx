@@ -1,3 +1,5 @@
+// src/components/CarFieldsConfig.tsx
+
 "use client";
 
 import { useState } from "react";

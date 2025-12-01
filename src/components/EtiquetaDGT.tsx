@@ -1,3 +1,5 @@
+// src/components/EtiquetaDGT.tsx
+
 "use client";
 
 interface Props {

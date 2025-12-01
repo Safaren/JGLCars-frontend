@@ -1,3 +1,5 @@
+// src/components/GalleryLightboxMobile.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";

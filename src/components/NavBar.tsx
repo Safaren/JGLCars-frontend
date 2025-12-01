@@ -1,3 +1,5 @@
+// src/components/NavBar.tsx
+
 "use client";
 
 import { useRouter } from "next/navigation";

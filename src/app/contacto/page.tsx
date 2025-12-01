@@ -1,3 +1,5 @@
+// src/app/contacto/page.tsx
+
 import ContactoForm from "../../components/ContactoForm";
 import { Suspense } from "react";
 

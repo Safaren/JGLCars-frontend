@@ -1,3 +1,5 @@
+// src/hooks/useAuth.ts
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,13 +13,20 @@ export function useAuth() {
       try {
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/auto-login`,
-          { credentials: "include" }
+          {
+            credentials: "include",
+            cache: "no-store",
+            mode: "cors",
+          }
         );
 
         const data = await res.json();
+        console.log("useAuth auto-login response:", data);
 
         if (data.loggedIn) setUser(data.user);
-      } catch {}
+      } catch (err) {
+        console.error("useAuth auto-login error:", err);
+      }
       setLoading(false);
     }
 

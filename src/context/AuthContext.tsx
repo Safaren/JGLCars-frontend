@@ -1,4 +1,3 @@
-// src/context/AuthContext.tsx
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -23,7 +22,6 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
-
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,12 +34,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const res = await fetch(`${API}/auth/auto-login`, {
           method: "GET",
           credentials: "include",
+          cache: "no-store",
+          mode: "cors",
         });
 
         const data = await res.json();
 
         if (data.loggedIn) setUser(data.user);
-      } catch {}
+      } catch (err) {
+        console.error("AutoLogin error:", err);
+      }
 
       setLoading(false);
     }
@@ -55,6 +57,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const res = await fetch(`${API}/auth/login`, {
         method: "POST",
         credentials: "include",
+        cache: "no-store",
+        mode: "cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
@@ -66,7 +70,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(body.user);
       router.refresh();
       return true;
-    } catch {
+    } catch (err) {
+      console.error("Login error:", err);
       return false;
     }
   };
@@ -77,8 +82,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await fetch(`${API}/auth/logout`, {
         method: "POST",
         credentials: "include",
+        cache: "no-store",
+        mode: "cors",
       });
-    } catch {}
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
 
     setUser(null);
     router.refresh();
@@ -91,10 +100,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await fetch(`${API}/auth/refresh`, {
         method: "POST",
         credentials: "include",
+        cache: "no-store",
+        mode: "cors",
       });
-    } catch {}
+    } catch (err) {
+      console.error("Refresh Token Error:", err);
+    }
   };
 
+  // cada 12 min
   useEffect(() => {
     const interval = setInterval(refreshToken, 12 * 60 * 1000);
     return () => clearInterval(interval);

@@ -1,3 +1,5 @@
+// src/components/CarCard.tsx
+
 "use client";
 
 import { motion } from "framer-motion";

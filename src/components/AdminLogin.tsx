@@ -1,3 +1,5 @@
+// src/components/AdminLogin.tsx
+
 "use client";
 
 import * as React from "react";
