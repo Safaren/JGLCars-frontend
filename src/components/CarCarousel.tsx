@@ -1,263 +1,150 @@
+// src/components/CarCard.tsx
+
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { motion } from "framer-motion";
+import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { CarForFrontend } from "@/types/CarForFrontend";
+import EtiquetaDGT from "@/components/EtiquetaDGT";
 
-interface CarouselImage {
-  url: string;
-  marca: string;
-  model: string;
-  combustible: string;
-  precio: number;
-  anoFabricacion: number;
-  carId: number;
+interface FieldConfig {
+  label: string;
+  visible: boolean;
+  editable: boolean;
+  type?: string;
+  options?: string[];
 }
 
-interface Props {
-  images: string[]; // Lista de imágenes del coche
-  interval?: number; // Intervalo para el cambio automático de imágenes
-  marca?: string;
-  model?: string;
-  combustible?: string;
-  precio?: number;
-  anoFabricacion?: number;
-  carId?: number;
-  videos?: string[];
-  showThumbnails?: boolean; // Mostrar miniaturas
+interface CarCardProps {
+  car: CarForFrontend; // Aseguramos que car es recibido como prop
+  fieldConfig: Record<string, FieldConfig>; // Ahora car tiene la propiedad `fieldConfig`
 }
 
-export default function CarCarousel(props: Props) {
-  const router = useRouter();
+export default function CarCard({ car, fieldConfig }: CarCardProps) {
+  const img = car.imagenes?.[0]?.url || "/no-image.jpg";
+  const href = `/coches/${car.id}`;
 
-  const {
-    images,
-    videos = [],
-    interval = 3500,
-    marca,
-    model,
-    combustible,
-    precio,
-    anoFabricacion,
-    carId,
-    showThumbnails = true, // Controla si se deben mostrar las miniaturas
-  } = props;
+  const [liked, setLiked] = useState(false);
 
-  const [index, setIndex] = useState(0);
-  const [hovering, setHovering] = useState(false);
+  const handleHeartClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (liked) return;
 
-  // ⭐ Modal vídeo
-  const [videoModal, setVideoModal] = useState<string | null>(null);
+    setLiked(true);
 
-  // ⭐ SWIPE — refs
-  const startX = useRef<number | null>(null);
-  const minSwipe = 50;
+    const mensaje = `Me interesa el coche ${car.marca} ${car.model}`;
 
-  useEffect(() => setIndex(0), [images]);
-
-  useEffect(() => {
-    if (!images.length || hovering) return;
-    const t = setInterval(() => setIndex((i) => (i + 1) % images.length), interval);
-    return () => clearInterval(t);
-  }, [images, interval, hovering]);
-
-  const goPrev = () => setIndex((i) => (i - 1 + images.length) % images.length);
-  const goNext = () => setIndex((i) => (i + 1) % images.length);
-
-  // ⭐ MINIATURA video YouTube
-  const videoThumb = (url: string) => {
-    const m = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]+)/);
-    return m ? `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg` : "";
+    setTimeout(() => {
+      window.location.href = `/contacto?carId=${car.id}&mensaje=${encodeURIComponent(mensaje)}`;
+    }, 300);
   };
-
-  // ⭐ Mezcla imágenes + vídeos
-  const slides = [
-    ...images.map((u) => ({ type: "image" as const, url: u })), 
-    ...videos.map((u) => ({
-      type: "video" as const,
-      url: u,
-      thumb: videoThumb(u),
-    })),
-  ];
-
-  const clickToCar = () => {
-    if (carId) router.push(`/coches/${carId}`);
-  };
-
-  // ⭐ SWIPE HANDLERS
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchMove = () => {
-    // No necesitamos nada aquí, pero permite extenderlo si haces animación
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (startX.current == null) return;
-
-    const diff = e.changedTouches[0].clientX - startX.current;
-
-    if (diff > minSwipe) {
-      goPrev();
-    } else if (diff < -minSwipe) {
-      goNext();
-    }
-
-    startX.current = null;
-  };
-
-  if (images.length === 0) return <div className="w-full h-72 bg-gray-200"></div>;
 
   return (
-    <div className="w-full flex flex-col gap-4">
-      <div
-        className="group relative w-full rounded-xl overflow-hidden shadow-2xl bg-black"
-        onMouseEnter={() => setHovering(true)}
-        onMouseLeave={() => setHovering(false)}
-      >
-        {/* SLIDER IMAGES */}
-        <div
-          className="relative w-full h-[65vh] max-h-[800px] min-h-[300px] cursor-pointer"
-          onClick={clickToCar}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          {images.map((img, i) => (
-            <Image
-              key={i}
-              src={img}
-              alt="foto coche"
-              fill
-              className={`absolute inset-0 object-contain transition-opacity duration-700 ${
-                index === i ? "opacity-100" : "opacity-0"
-              }`}
-            />
-          ))}
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ scale: 1.03 }}
+      transition={{ duration: 0.3 }}
+      className="bg-white rounded-2xl shadow-md hover:shadow-xl overflow-hidden border border-gray-100 transition cursor-pointer"
+    >
+      <Link href={href}>
+        <div className="relative w-full h-56 bg-gray-100">
+          <Image
+            src={img}
+            alt={`${car.marca ?? ""} ${car.model ?? ""}`}
+            fill
+            className="object-cover"
+          />
 
-          {/* AÑO */}
-          {anoFabricacion && (
-            <span className="absolute top-3 left-3 bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-              {anoFabricacion}
-            </span>
-          )}
-
-          {/* PRECIO */}
-          {precio && (
-            <span className="absolute top-3 right-3 bg-blue-600/80 text-white px-4 py-2 rounded-lg text-lg font-semibold shadow-xl backdrop-blur-sm">
-              {precio.toLocaleString()} €
-            </span>
-          )}
-
-          {/* INFO */}
-          {(marca || model || combustible) && (
-            <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-lg shadow-lg">
-              <p className="text-lg font-bold">
-                {marca} {model}
-              </p>
-              <p className="text-sm opacity-70">{combustible}</p>
-            </div>
-          )}
-        </div>
-
-        {/* FLECHA PREV */}
-        <button
-          onClick={(e) => { e.stopPropagation(); goPrev(); }}
-          className="
-            hidden sm:flex
-            absolute left-4 top-1/2 -translate-y-1/2
-            w-14 h-14
-            rounded-full
-            bg-lineal from-black/40 to-black/10
-            backdrop-blur-md
-            border border-white/20
-            text-white
-            items-center justify-center
-            shadow-xl
-            opacity-0 group-hover:opacity-100
-            transition-all duration-300
-            hover:scale-110 hover:shadow-[0_0_15px_#3b82f6]
-            hover:-translate-x-2
-          "
-        >
-          <svg width="26" height="26" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M15.5 19a1 1 0 0 1-.7-.29l-7-7a1 1 0 0 1 0-1.42l7-7a1 1 0 1 1 1.4 1.42L9.91 12l6.29 6.29A1 1 0 0 1 15.5 19z" />
-          </svg>
-        </button>
-
-        {/* FLECHA NEXT */}
-        <button
-          onClick={(e) => { e.stopPropagation(); goNext(); }}
-          className="
-            hidden sm:flex
-            absolute right-4 top-1/2 -translate-y-1/2
-            w-14 h-14
-            rounded-full
-            bg-lineal-to-br from-black/40 to-black/10
-            backdrop-blur-md
-            border border-white/20
-            text-white
-            items-center justify-center
-            shadow-xl
-            opacity-0 group-hover:opacity-100
-            transition-all duration-300
-            hover:scale-110 hover:shadow-[0_0_15px_#3b82f6]
-            hover:translate-x-2
-          "
-        >
-          <svg width="26" height="26" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8.5 5a1 1 0 0 1 .7.29l7 7a1 1 0 0 1 0 1.42l-7 7a1 1 0 1 1-1.4-1.42L14.09 12 7.79 5.71A1 1 0 0 1 8.5 5z" />
-          </svg>
-        </button>
-
-        {/* PUNTOS */}
-        <div className="absolute bottom-4 inset-x-0 flex justify-center gap-2">
-          {images.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setIndex(i)}
-              className={`w-3 h-3 rounded-full ${
-                i === index ? "bg-white scale-110 shadow-md" : "bg-white/40"
-              } transition`}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* MINIATURAS */}
-      {showThumbnails && (
-        <div className="flex gap-2 justify-center flex-wrap z-20">
-          {slides.map((s, i) => (
-            <div
-              key={i}
-              role="button"
-              onClick={() => setIndex(i)} // Cambiar coche al hacer clic en la miniatura
-              className={`w-20 h-20 rounded-lg overflow-hidden border cursor-pointer ${
-                i === index ? "border-blue-500" : "border-gray-400"
-              }`}
+          <motion.button
+            onClick={handleHeartClick}
+            aria-label="Me interesa"
+            className="absolute top-3 right-3 p-2 rounded-full bg-white/30 backdrop-blur shadow-lg transition flex items-center justify-center"
+            whileTap={{ scale: 0.95 }}
+          >
+            <motion.svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="white"
+              animate={{
+                scale: liked ? [1, 1.18, 1] : 1,
+                fill: liked ? "#ff6b81" : "transparent",
+              }}
+              transition={{
+                scale: { duration: 0.35, ease: "easeOut" },
+                fill: { duration: 3, ease: "linear" },
+              }}
+              className="w-7 h-7"
             >
-              {s.type === "image" ? (
-                <img src={s.url} className="w-full h-full object-cover" alt="miniatura" />
-              ) : (
-                <div className="relative w-full h-full">
-                  <img
-                    src={s.thumb || ""}
-                    alt="thumb vídeo"
-                    className="w-full h-full object-cover"
-                    onError={(ev) => {
-                      (ev.currentTarget as HTMLImageElement).style.backgroundColor = "#111";
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="text-white text-xl opacity-90">▶</div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.172 5.172a4.5 4.5 0 016.364 0L12 7.636l2.464-2.464a4.5 4.5 0 116.364 6.364L12 21.364l-8.828-8.828a4.5 4.5 0 010-6.364z"
+              />
+            </motion.svg>
+          </motion.button>
+
+          {car.anoFabricacion && (
+            <span className="absolute top-2 left-2 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
+              {car.anoFabricacion}
+            </span>
+          )}
         </div>
-      )}
-    </div>
+
+        <div className="p-4 space-y-2">
+          <h3 className="text-xl font-bold text-gray-900">
+            {car.marca} {car.model}
+          </h3>
+
+          <p className="text-blue-600 font-extrabold text-2xl">
+            {car.precio?.toLocaleString()} €
+          </p>
+
+          <div className="text-gray-700 text-sm flex flex-wrap items-center gap-x-6 mt-2">
+            {/* Solo mostrar los campos que estén configurados como visibles */}
+            {fieldConfig.potencia?.visible && car.potencia && (
+              <span className="flex items-center gap-1">
+                <IconPotencia />
+                <strong className="text-gray-800">{car.potencia} CV</strong>
+              </span>
+            )}
+
+            {fieldConfig.combustible?.visible && car.combustible && (
+              <span className="flex items-center gap-1">
+                <IconCombustible />
+                <strong className="text-gray-800">{car.combustible}</strong>
+              </span>
+            )}
+
+            {fieldConfig.ambiental?.visible && car.ambiental && (
+              <span className="flex items-center">
+                <EtiquetaDGT tipo={car.ambiental} size={32} />
+              </span>
+            )}
+
+            {fieldConfig.km?.visible && car.km != null && (
+              <span className="flex items-center gap-1">
+                <strong className="text-gray-800">
+                  {car.km.toLocaleString()} km
+                </strong>
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="px-4 pb-4">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            className="text-center bg-blue-600 text-white py-2 rounded-xl mt-2 font-semibold"
+          >
+            Ver detalles
+          </motion.div>
+        </div>
+      </Link>
+    </motion.div>
   );
 }
