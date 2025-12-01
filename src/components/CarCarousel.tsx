@@ -1,5 +1,3 @@
-// src/components/CarCarousel.tsx
-
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -17,8 +15,8 @@ interface CarouselImage {
 }
 
 interface Props {
-  images: string[];
-  interval?: number;
+  images: string[]; // Lista de imágenes del coche
+  interval?: number; // Intervalo para el cambio automático de imágenes
   marca?: string;
   model?: string;
   combustible?: string;
@@ -26,6 +24,7 @@ interface Props {
   anoFabricacion?: number;
   carId?: number;
   videos?: string[];
+  showThumbnails?: boolean; // Mostrar miniaturas
 }
 
 export default function CarCarousel(props: Props) {
@@ -41,6 +40,7 @@ export default function CarCarousel(props: Props) {
     precio,
     anoFabricacion,
     carId,
+    showThumbnails = true, // Controla si se deben mostrar las miniaturas
   } = props;
 
   const [index, setIndex] = useState(0);
@@ -72,7 +72,7 @@ export default function CarCarousel(props: Props) {
 
   // ⭐ Mezcla imágenes + vídeos
   const slides = [
-    ...images.map((u) => ({ type: "image" as const, url: u })),
+    ...images.map((u) => ({ type: "image" as const, url: u })), 
     ...videos.map((u) => ({
       type: "video" as const,
       url: u,
@@ -107,12 +107,10 @@ export default function CarCarousel(props: Props) {
     startX.current = null;
   };
 
-  if (images.length === 0)
-    return <div className="w-full h-72 bg-gray-200"></div>;
+  if (images.length === 0) return <div className="w-full h-72 bg-gray-200"></div>;
 
   return (
     <div className="w-full flex flex-col gap-4">
-
       <div
         className="group relative w-full rounded-xl overflow-hidden shadow-2xl bg-black"
         onMouseEnter={() => setHovering(true)}
@@ -122,7 +120,6 @@ export default function CarCarousel(props: Props) {
         <div
           className="relative w-full h-[65vh] max-h-[800px] min-h-[300px] cursor-pointer"
           onClick={clickToCar}
-          // ⭐ SWIPE
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -185,7 +182,7 @@ export default function CarCarousel(props: Props) {
           "
         >
           <svg width="26" height="26" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M15.5 19a1 1 0 0 1-.7-.29l-7-7a1 1 0 0 1 0-1.42l7-7a1 1 0 1 1 1.4 1.42L9.91 12l6.29 6.29A1 1 0 0 1 15.5 19z"/>
+            <path d="M15.5 19a1 1 0 0 1-.7-.29l-7-7a1 1 0 0 1 0-1.42l7-7a1 1 0 1 1 1.4 1.42L9.91 12l6.29 6.29A1 1 0 0 1 15.5 19z" />
           </svg>
         </button>
 
@@ -210,7 +207,7 @@ export default function CarCarousel(props: Props) {
           "
         >
           <svg width="26" height="26" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8.5 5a1 1 0 0 1 .7.29l7 7a1 1 0 0 1 0 1.42l-7 7a1 1 0 1 1-1.4-1.42L14.09 12 7.79 5.71A1 1 0 0 1 8.5 5z"/>
+            <path d="M8.5 5a1 1 0 0 1 .7.29l7 7a1 1 0 0 1 0 1.42l-7 7a1 1 0 1 1-1.4-1.42L14.09 12 7.79 5.71A1 1 0 0 1 8.5 5z" />
           </svg>
         </button>
 
@@ -229,37 +226,38 @@ export default function CarCarousel(props: Props) {
       </div>
 
       {/* MINIATURAS */}
-      <div className="flex gap-2 justify-center flex-wrap z-20">
-        {slides.map((s, i) => (
-          <div
-            key={i}
-            role="button"
-            onClick={() => setIndex(i)}
-            className={`w-20 h-20 rounded-lg overflow-hidden border cursor-pointer ${
-              i === index ? "border-blue-500" : "border-gray-400"
-            }`}
-          >
-            {s.type === "image" ? (
-              <img src={s.url} className="w-full h-full object-cover" alt="miniatura" />
-            ) : (
-              <div className="relative w-full h-full">
-                <img
-                  src={s.thumb || ""}
-                  alt="thumb vídeo"
-                  className="w-full h-full object-cover"
-                  onError={(ev) => {
-                    (ev.currentTarget as HTMLImageElement).style.backgroundColor = "#111";
-                  }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="text-white text-xl opacity-90">▶</div>
+      {showThumbnails && (
+        <div className="flex gap-2 justify-center flex-wrap z-20">
+          {slides.map((s, i) => (
+            <div
+              key={i}
+              role="button"
+              onClick={() => setIndex(i)} // Cambiar coche al hacer clic en la miniatura
+              className={`w-20 h-20 rounded-lg overflow-hidden border cursor-pointer ${
+                i === index ? "border-blue-500" : "border-gray-400"
+              }`}
+            >
+              {s.type === "image" ? (
+                <img src={s.url} className="w-full h-full object-cover" alt="miniatura" />
+              ) : (
+                <div className="relative w-full h-full">
+                  <img
+                    src={s.thumb || ""}
+                    alt="thumb vídeo"
+                    className="w-full h-full object-cover"
+                    onError={(ev) => {
+                      (ev.currentTarget as HTMLImageElement).style.backgroundColor = "#111";
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-white text-xl opacity-90">▶</div>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

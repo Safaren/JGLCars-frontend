@@ -1,17 +1,17 @@
-// src/app/coches/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
 import CarCard from "@/components/CarCard";
+import CarCarousel from "@/components/CarCarousel"; // Importamos el componente de carrusel
 import { motion } from "framer-motion";
 import { CarForFrontend } from "@/types/CarForFrontend";
+import { loadFieldConfig } from "@/config/carFields"; // Asegurarnos de que esta función está disponible
 
 export default function CochesPage() {
   const [cars, setCars] = useState<CarForFrontend[]>([]);
   const [filtered, setFiltered] = useState<CarForFrontend[]>([]);
   const [loading, setLoading] = useState(true);
-
+  
   // Filtros
   const [search, setSearch] = useState("");
   const [marcaFilter, setMarcaFilter] = useState("");
@@ -83,6 +83,9 @@ export default function CochesPage() {
 
   const marcas = Array.from(new Set(cars.map((c) => c.marca ?? "Sin marca")));
   const combustibles = Array.from(new Set(cars.map((c) => c.combustible ?? "")));
+
+  // Cargar configuración de campos (si es necesario)
+  const fieldConfig = loadFieldConfig();
 
   return (
     <section className="max-w-7xl mx-auto px-6 mt-20 mb-32">
@@ -161,7 +164,13 @@ export default function CochesPage() {
       >
         {filtered.map((car) => (
           <div key={car.id}>
-            <CarCard car={car} />
+            {/* Mostrar el carrusel para cada coche */}
+            <CarCarousel
+              carId={car.id}
+              images={car.imagenes?.map((img) => img.url) || []} // Pasamos las imágenes del coche
+              showThumbnails={true} // Habilitamos miniaturas
+            />
+            <CarCard car={car} fieldConfig={fieldConfig} /> {/* Pasamos fieldConfig a CarCard */}
           </div>
         ))}
       </motion.div>

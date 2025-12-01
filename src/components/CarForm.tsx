@@ -76,7 +76,9 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
     if (!initialData?.id) return;
 
     fetch(`${API}/fotos-car/${initialData.id}`, {
-      headers: authHeaders(),
+      credentials: "include",
+      mode: "cors",
+      cache: "no-store",
     })
       .then((r) => r.json())
       .then((fotos) =>
@@ -206,31 +208,55 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
 
     const id = saved.id;
 
-    // Reordenar existentes
-    if (existingFotos.length > 0) {
-      await fetch(`${API}/fotos-car/reorder/${id}`, {
-        method: "POST",
-        headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({
-          orderedImages: existingFotos.map((f) => f.url),
-        }),
-      });
+    try {
+      // Reordenar existentes
+      if (existingFotos.length > 0) {
+        const reorderRes = await fetch(`${API}/fotos-car/reorder/${id}`, {
+          method: "POST",
+          credentials: "include",
+          mode: "cors",
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            orderedImages: existingFotos.map((f) => f.url),
+          }),
+        });
+
+        if (!reorderRes.ok) {
+          const errorData = await reorderRes.json().catch(() => ({}));
+          throw new Error(errorData.error || "Error al reordenar imágenes");
+        }
+      }
+
+      // Subir nuevas
+      if (newFotos.length > 0) {
+        const fd = new FormData();
+        newFotos.forEach((f) => fd.append("files", f.file));
+
+        const uploadRes = await fetch(`${API}/fotos-car/${id}`, {
+          method: "POST",
+          credentials: "include",
+          mode: "cors",
+          cache: "no-store",
+          // No ponemos Content-Type para FormData (fetch lo gestiona automáticamente)
+          body: fd,
+        });
+
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json().catch(() => ({}));
+          console.error("Error al subir las imágenes", errorData);
+          throw new Error(errorData.error || "Error al subir imágenes");
+        }
+      }
+
+      toast.success("Coche guardado correctamente");
+      onCancel();
+    } catch (err: any) {
+      console.error("Error guardando imágenes:", err);
+      toast.error(err.message || "Error al guardar las imágenes");
     }
-
-    // Subir nuevas
-    if (newFotos.length > 0) {
-      const fd = new FormData();
-      newFotos.forEach((f) => fd.append("files", f.file));
-
-      await fetch(`${API}/fotos-car/${id}`, {
-        method: "POST",
-        headers: authHeaders(), // SOLO TOKEN, sin content-type
-        body: fd,
-      });
-    }
-
-    toast.success("Coche guardado correctamente");
-    onCancel();
   };
 
   // Reordenar imágenes existentes

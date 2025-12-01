@@ -11,17 +11,27 @@ import { loadFieldConfig } from "@/config/carFields";
 
 interface Car {
   id: number;
-  marca: string;
-  model: string;
-  precio: number;
-  combustible: string;
-  color: string;
+  marca?: string;
+  model?: string;
+  precio?: number;
+  combustible?: string;
+  color?: string;
   consumo?: number;
   potencia?: number;
   cilindrada?: number;
   anoFabricacion?: number;
   descripcion?: string;
-  etiqueta?: string;
+  ambiental?: string;
+  km?: number;
+  puertas?: number;
+  plazas?: number;
+  itv?: string | Date;
+  carroceria?: string;
+  cambio?: string;
+  matricula?: string;
+  tipoVenta?: string;
+  garantia?: boolean;
+  destacado?: boolean;
   imagenes?: { url: string }[];
   videos?: string[];
 }
@@ -100,21 +110,23 @@ export default function CarPageClient({ id }: { id: string }) {
     <section className="max-w-6xl mx-auto px-6 mt-20 mb-32">
 
       {/* ---------- CAROUSEL ---------- */}
-      {fieldConfig.imagenes?.visible !== false && <CarCarousel images={images} />}
+      {fieldConfig.imagenes?.visible !== false && (
+        <CarCarousel images={images} showThumbnails={false} interval={3000} />
+      )}
 
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-10">
         
         {/* ---------- DATOS PRINCIPALES ---------- */}
         <div>
           {/* TÍTULO */}
-          {fieldConfig.titulo?.visible !== false && (
+          {fieldConfig.titulo?.visible !== false && (car.marca || car.model) && (
             <h1 className="text-4xl font-extrabold text-cyan-500">
-              {car.marca} {car.model}
+              {car.marca || ''} {car.model || ''}
             </h1>
           )}
 
           {/* PRECIO */}
-          {fieldConfig.precio?.visible !== false && (
+          {fieldConfig.precio?.visible !== false && car.precio && (
             <p className="text-cyan-400 text-3xl font-bold mt-3">
               {car.precio.toLocaleString()} €
             </p>
@@ -122,54 +134,72 @@ export default function CarPageClient({ id }: { id: string }) {
 
           {/* ---------- CAMPOS DINÁMICOS ---------- */}
           <div className="mt-8 space-y-3 text-gray-800 text-lg">
+            {Object.entries(fieldConfig)
+              .filter(([key, config]) => {
+                // Excluir campos especiales que se muestran en otras secciones
+                const specialFields = ['titulo', 'precio', 'imagenes', 'galeria', 'descripcion', 'botonContacto', 'etiqueta'];
+                if (specialFields.includes(key)) return false;
+                
+                // Solo mostrar campos visibles y que tengan valor
+                if (!config.visible) return false;
+                
+                const value = (car as any)[key];
+                if (value === undefined || value === null || value === '') return false;
+                
+                return true;
+              })
+              .map(([key, config]) => {
+                const value = (car as any)[key];
+                let displayValue: string = '';
 
-            {fieldConfig.model?.visible && car.model && (
-              <p><strong className="text-amber-500">{fieldConfig.model.label}:</strong>
-              <span className="text-amber-300"> {car.model}</span></p>
-            )}
+                // Formatear según el tipo
+                if (config.type === 'boolean') {
+                  displayValue = value ? 'Sí' : 'No';
+                } else if (config.type === 'number') {
+                  if (key === 'potencia') {
+                    displayValue = `${value} CV`;
+                  } else if (key === 'consumo') {
+                    displayValue = `${value} L/100km`;
+                  } else if (key === 'cilindrada') {
+                    displayValue = `${value} cc`;
+                  } else if (key === 'km') {
+                    displayValue = `${value.toLocaleString()} km`;
+                  } else if (key === 'precio') {
+                    displayValue = `${value.toLocaleString()} €`;
+                  } else {
+                    displayValue = value.toString();
+                  }
+                } else if (config.type === 'date') {
+                  const date = new Date(value);
+                  if (!isNaN(date.getTime())) {
+                    displayValue = date.toLocaleDateString('es-ES');
+                  } else {
+                    displayValue = value.toString();
+                  }
+                } else if (config.type === 'select' && config.options) {
+                  // Buscar el label correspondiente al value
+                  const option = config.options.find(
+                    (opt) => (typeof opt === 'string' ? opt : opt.value) === value
+                  );
+                  displayValue = typeof option === 'string' ? option : option?.label || value;
+                } else {
+                  displayValue = value.toString();
+                }
 
-            {fieldConfig.marca?.visible && car.marca && (
-              <p><strong className="text-amber-500">{fieldConfig.marca.label}:</strong>
-              <span className="text-amber-300"> {car.marca}</span></p>
-            )}
-
-            {fieldConfig.anoFabricacion?.visible && car.anoFabricacion && (
-              <p><strong className="text-amber-500">{fieldConfig.anoFabricacion.label}:</strong>
-              <span className="text-amber-300"> {car.anoFabricacion}</span></p>
-            )}
-
-            {fieldConfig.potencia?.visible && car.potencia && (
-              <p><strong className="text-amber-500">{fieldConfig.potencia.label}:</strong>
-              <span className="text-amber-300"> {car.potencia} CV</span></p>
-            )}
-
-            {fieldConfig.consumo?.visible && car.consumo && (
-              <p><strong className="text-amber-500">{fieldConfig.consumo.label}:</strong>
-              <span className="text-amber-300">{car.consumo} L/100km</span></p>
-            )}
-
-            {fieldConfig.cilindrada?.visible && car.cilindrada && (
-              <p><strong className="text-amber-500">{fieldConfig.cilindrada.label}:</strong>
-              <span className="text-amber-300"> {car.cilindrada} cc</span></p>
-            )}
-
-            {fieldConfig.combustible?.visible && car.combustible && (
-              <p><strong className="text-amber-500">{fieldConfig.combustible.label}:</strong>
-              <span className="text-amber-300"> {car.combustible}</span></p>
-            )}
-
-            {fieldConfig.color?.visible && car.color && (
-              <p><strong className="text-amber-500">{fieldConfig.color.label}:</strong>
-              <span className="text-amber-300"> {car.color}</span></p>
-            )}
-
+                return (
+                  <p key={key}>
+                    <strong className="text-amber-500">{config.label}:</strong>
+                    <span className="text-amber-300"> {displayValue}</span>
+                  </p>
+                );
+              })}
           </div>
 
           {/* ---------- ETIQUETA ---------- */}
-          {fieldConfig.etiqueta?.visible && car.etiqueta && (
+          {fieldConfig.ambiental?.visible && car.ambiental && (
             <div className="flex items-center gap-3 mt-6">
               <h4 className="font-semibold text-gray-700">Etiqueta ambiental:</h4>
-              <EtiquetaDGT tipo={car.etiqueta} size={70} />
+              <EtiquetaDGT tipo={car.ambiental} size={70} />
             </div>
           )}
 
@@ -190,6 +220,16 @@ export default function CarPageClient({ id }: { id: string }) {
               Me interesa
             </motion.button>
           )}
+
+          {/* ---------- DESCRIPCIÓN ---------- */}
+          {fieldConfig.descripcion?.visible !== false && car.descripcion && (
+            <div className="mt-8">
+              <h3 className="text-2xl font-bold text-amber-500 mb-4">Descripción del coche</h3>
+              <p className="text-amber-300 leading-relaxed">
+                {car.descripcion}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* ---------- GALERÍA ---------- */}
@@ -200,10 +240,21 @@ export default function CarPageClient({ id }: { id: string }) {
             </h2>
 
             {(() => {
-              const videoThumb = (url: string) => {
-                const m = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/);
-                return m ? `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg` : null;
-              };
+const videoThumb = (url: string) => {
+  // Para videos normales
+  const matchRegular = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/);
+  if (matchRegular) {
+    return `https://img.youtube.com/vi/${matchRegular[1]}/hqdefault.jpg`;
+  }
+
+  // Para YouTube Shorts (https://www.youtube.com/shorts/VIDEO_ID)
+  const matchShort = url.match(/(?:shorts\/)([A-Za-z0-9_-]{11})/);
+  if (matchShort) {
+    return `https://img.youtube.com/vi/${matchShort[1]}/hqdefault.jpg`;
+  }
+
+  return null;  // Si no es un video válido de YouTube
+};
 
 type Item = { type: "image" | "video"; url: string; thumb?: string };
 
@@ -252,41 +303,35 @@ const items: Item[] = [
         )}
       </div>
 
-      {/* ---------- DESCRIPCIÓN ---------- */}
-      {fieldConfig.descripcion?.visible !== false && (
-        <div className="mt-16 text-center max-w-3xl mx-auto">
-          <h3 className="text-2xl font-bold text-amber-500 mb-4">Descripción del coche</h3>
-          <p className="text-amber-300 leading-relaxed">
-            {car.descripcion ||
-              "Este vehículo ha sido revisado y comprobado. Para más información, contáctanos y estaremos encantados de ayudarte."}
-          </p>
-        </div>
-      )}
-
       {/* ---------- MODAL VIDEO ---------- */}
-      {videoModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="relative bg-black rounded-xl w-full max-w-4xl overflow-hidden shadow-xl">
-            <button
-              onClick={() => setVideoModal(null)}
-              className="absolute top-3 right-3 text-white text-3xl z-50"
-            >
-              ✕
-            </button>
+{videoModal && (
+  <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+    <div className="relative bg-black rounded-xl w-full max-w-4xl overflow-hidden shadow-xl">
+      <button
+        onClick={() => setVideoModal(null)}
+        className="absolute top-3 right-3 text-white text-3xl z-50"
+      >
+        ✕
+      </button>
 
-            <div className="relative aspect-video w-full">
-              <iframe
-                src={videoModal
-                  .trim()
-                  .replace("watch?v=", "embed/")
-                  .replace("youtu.be/", "youtube.com/embed/")}
-                className="absolute inset-0 w-full h-full"
-                allowFullScreen
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="relative aspect-video w-full">
+        <iframe
+          src={
+            // Si el video es un short, lo reemplazamos con el formato correcto
+            videoModal.includes("shorts")
+              ? `https://www.youtube.com/embed/${videoModal.split("/shorts/")[1]}`
+              : videoModal
+                .trim()
+                .replace("watch?v=", "embed/")
+                .replace("youtu.be/", "youtube.com/embed/")
+          }
+          className="absolute inset-0 w-full h-full"
+          allowFullScreen
+        />
+      </div>
+    </div>
+  </div>
+)}
 
       {/* ---------- MODAL IMAGEN ---------- */}
       {imageModal && (
