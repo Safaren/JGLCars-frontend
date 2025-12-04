@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import CarCard from "@/components/CarCard";
-import CarCarousel from "@/components/CarCarousel"; // Importamos el componente de carrusel
+import CarCarousel from "@/components/CarCarouselData"; // Importamos el componente de carrusel
 import { motion } from "framer-motion";
 import { CarForFrontend } from "@/types/CarForFrontend";
 import { loadFieldConfig } from "@/config/carFields"; // Asegurarnos de que esta función está disponible

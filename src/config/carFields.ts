@@ -1,6 +1,6 @@
-// ---------------------------------------------
+// ----------------------------------------------------
 // 🔵 Tipos base
-// ---------------------------------------------
+// ----------------------------------------------------
 export type FieldType = "text" | "number" | "select" | "date" | "boolean";
 
 export interface OptionItem {
@@ -8,17 +8,20 @@ export interface OptionItem {
   value: string;
 }
 
+// ESTA ES LA DEFINICIÓN ÚNICA Y CORRECTA DE FIELD CONFIG
 export interface FieldConfig {
   label: string;
   visible: boolean;
   editable: boolean;
   type: FieldType;
-  options?: Array<string | OptionItem>; // soporta string[] y OptionItem[]
+  options?: Array<string | OptionItem>;
+  required?: boolean;
+  order?: number; // ⬅️ ahora orden opcional y compatible
 }
 
-// ---------------------------------------------
-// 🔵 ENUMS SEGÚN TU PRISMA
-// ---------------------------------------------
+// ----------------------------------------------------
+// 🔵 Enums según tu Prisma
+// ----------------------------------------------------
 
 export const ENUM_TIPO_VENTA: OptionItem[] = [
   { label: "Coche", value: "COCHE" },
@@ -38,15 +41,18 @@ export const ENUM_AMBIENTAL: OptionItem[] = [
   { label: "Sin etiqueta", value: "SIN_ETIQUETA" },
 ];
 
-// ---------------------------------------------
-// 🔵 CONFIGURACIÓN COMPLETA DE CAMPOS DEL MODELO CAR
-// ---------------------------------------------
+// ----------------------------------------------------
+// 🔵 Configuración de campos del modelo Car
+// ----------------------------------------------------
+
 export const CAR_FIELDS: Record<string, FieldConfig> = {
   marca: {
     label: "Marca",
     visible: true,
     editable: true,
     type: "text",
+    required: true,
+    order: 1,
   },
 
   model: {
@@ -54,6 +60,8 @@ export const CAR_FIELDS: Record<string, FieldConfig> = {
     visible: true,
     editable: true,
     type: "text",
+    required: true,
+    order: 2,
   },
 
   consumo: {
@@ -68,6 +76,8 @@ export const CAR_FIELDS: Record<string, FieldConfig> = {
     visible: true,
     editable: true,
     type: "number",
+    required: true,
+    order: 3,
   },
 
   combustible: {
@@ -75,6 +85,8 @@ export const CAR_FIELDS: Record<string, FieldConfig> = {
     visible: true,
     editable: true,
     type: "text",
+    required: true,
+    order: 4,
   },
 
   anoFabricacion: {
@@ -82,6 +94,8 @@ export const CAR_FIELDS: Record<string, FieldConfig> = {
     visible: true,
     editable: true,
     type: "number",
+    required: true,
+    order: 5,
   },
 
   cilindrada: {
@@ -117,7 +131,8 @@ export const CAR_FIELDS: Record<string, FieldConfig> = {
     visible: false,
     editable: true,
     type: "select",
-    options: ENUM_AMBIENTAL, // ← opciones reales
+    options: ENUM_AMBIENTAL,
+    order: 6,
   },
 
   precio: {
@@ -125,6 +140,8 @@ export const CAR_FIELDS: Record<string, FieldConfig> = {
     visible: true,
     editable: true,
     type: "number",
+    required: true,
+    order: 7,
   },
 
   potencia: {
@@ -146,7 +163,7 @@ export const CAR_FIELDS: Record<string, FieldConfig> = {
     visible: false,
     editable: true,
     type: "select",
-    options: ENUM_CAMBIO, // ← opciones reales
+    options: ENUM_CAMBIO,
   },
 
   color: {
@@ -154,6 +171,7 @@ export const CAR_FIELDS: Record<string, FieldConfig> = {
     visible: true,
     editable: true,
     type: "text",
+    order: 8,
   },
 
   matricula: {
@@ -168,7 +186,7 @@ export const CAR_FIELDS: Record<string, FieldConfig> = {
     visible: false,
     editable: true,
     type: "select",
-    options: ENUM_TIPO_VENTA, // ← opciones reales
+    options: ENUM_TIPO_VENTA,
   },
 
   garantia: {
@@ -191,18 +209,19 @@ export const CAR_FIELDS: Record<string, FieldConfig> = {
     editable: true,
     type: "boolean",
   },
-  
+
   videos: {
-  label: "Vídeos (YouTube URLs, uno por línea)",
-  visible: false,
-  editable: true,
-  type: "text",
-},
+    label: "Vídeos (YouTube URLs, uno por línea)",
+    visible: false,
+    editable: true,
+    type: "text",
+  },
 };
 
-// ---------------------------------------------
+// ----------------------------------------------------
 // 🔵 Persistencia en localStorage
-// ---------------------------------------------
+// ----------------------------------------------------
+
 export function saveFieldConfig(config: Record<string, FieldConfig>) {
   localStorage.setItem("car_field_config", JSON.stringify(config));
 }
@@ -218,7 +237,7 @@ export function loadFieldConfig(): Record<string, FieldConfig> {
 
     const merged: Record<string, FieldConfig> = { ...CAR_FIELDS };
 
-    // Solo mezclar visible/editable, NO options/type/label
+    // Solo mezclar visible/editable
     for (const key of Object.keys(parsed)) {
       if (!merged[key]) continue;
 
@@ -226,7 +245,6 @@ export function loadFieldConfig(): Record<string, FieldConfig> {
         ...merged[key],
         visible: parsed[key].visible,
         editable: parsed[key].editable,
-        // mantenemos options, label, type del archivo base
       };
     }
 

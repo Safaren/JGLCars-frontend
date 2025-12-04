@@ -7,11 +7,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { CarForFrontend } from "@/types/CarForFrontend";
+import { FieldConfig } from "@/types/FieldConfig"; // <-- Asegúrate de tener este archivo
 import EtiquetaDGT from "@/components/EtiquetaDGT";
 
 /* ============================================
    ICONOS MEJORADOS
-============================================ */
+   =========================================== */
 
 // 🔧 ICONO POTENCIA (motor / CV)
 const IconPotencia = () => (
@@ -52,17 +53,30 @@ const IconKm = () => (
 );
 
 /* ============================================
-   COMPONENTE PRINCIPAL
-============================================ */
+   TIPOS Y PROPS
+   =========================================== */
 
-export default function CarCard({ car }: { car: CarForFrontend }) {
+interface CarCardProps {
+  car: CarForFrontend;
+  fieldConfig?: Record<string, FieldConfig>;
+}
+
+/* ============================================
+   COMPONENTE PRINCIPAL
+   =========================================== */
+
+export default function CarCard({ car, fieldConfig = {} }: CarCardProps) {
   const img = car.imagenes?.[0]?.url || "/no-image.jpg";
   const href = `/coches/${car.id}`;
+
+  // Helper: decidir si mostrar un campo (por defecto: true)
+  const show = (key: string, fallback = true) =>
+    fieldConfig?.[key]?.visible ?? fallback;
 
   // ❤️ Estado del corazón
   const [liked, setLiked] = useState(false);
 
-   const handleHeartClick = (e: React.MouseEvent) => {
+  const handleHeartClick = (e: React.MouseEvent) => {
     // Evita que se abra la ficha del coche
     e.preventDefault();
     e.stopPropagation();
@@ -73,13 +87,12 @@ export default function CarCard({ car }: { car: CarForFrontend }) {
     // Texto pre-relleno para el formulario
     const mensaje = `Me interesa el coche ${car.marca} ${car.model}`;
 
-    // Redirección a los 3 segundos con mensaje pre-cargado
+    // Redirección corta (300ms)
     setTimeout(() => {
-      window.location.href = 
+      window.location.href =
         `/contacto?carId=${car.id}&mensaje=${encodeURIComponent(mensaje)}`;
     }, 300);
   };
-
 
   return (
     <motion.div
@@ -114,23 +127,20 @@ export default function CarCard({ car }: { car: CarForFrontend }) {
               shadow-lg transition
               flex items-center justify-center
             "
-            // pequeño feedback al tocar
             whileTap={{ scale: 0.95 }}
           >
-            {/* SVG corazón: stroke blanco, fill animable vía Framer Motion */}
             <motion.svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               strokeWidth={2}
               stroke="white"
-              // animaciones: pop corto y relleno largo (3s)
               animate={{
                 scale: liked ? [1, 1.18, 1] : 1,
                 fill: liked ? "#ff6b81" : "transparent",
               }}
               transition={{
                 scale: { duration: 0.35, ease: "easeOut" },
-                fill: { duration: 3, ease: "linear" }, // relleno suave en 3s
+                fill: { duration: 3, ease: "linear" },
               }}
               className="w-7 h-7"
             >
@@ -146,7 +156,7 @@ export default function CarCard({ car }: { car: CarForFrontend }) {
           </motion.button>
 
           {/* Año en óvalo naranja */}
-          {car.anoFabricacion && (
+          {show("anoFabricacion") && car.anoFabricacion && (
             <span
               className="
                 absolute top-2 left-2 
@@ -164,40 +174,41 @@ export default function CarCard({ car }: { car: CarForFrontend }) {
         {/* INFO */}
         <div className="p-4 space-y-2">
           <h3 className="text-xl font-bold text-gray-900">
-            {car.marca} {car.model}
+            {show("marca") && car.marca} {show("model") && car.model}
           </h3>
 
-          <p className="text-blue-600 font-extrabold text-2xl">
-            {car.precio?.toLocaleString()} €
-          </p>
+          {show("precio") && (
+            <p className="text-blue-600 font-extrabold text-2xl">
+              {typeof car.precio === "number" ? car.precio.toLocaleString() : car.precio} €
+            </p>
+          )}
 
           {/* Línea de especificaciones */}
           <div className="text-gray-700 text-sm flex flex-wrap items-center gap-x-6 mt-2">
-            {car.potencia && (
+            {show("potencia") && car.potencia && (
               <span className="flex items-center gap-1">
                 <IconPotencia />
                 <strong className="text-gray-800">{car.potencia} CV</strong>
               </span>
             )}
 
-            {car.combustible && (
+            {show("combustible") && car.combustible && (
               <span className="flex items-center gap-1">
                 <IconCombustible />
                 <strong className="text-gray-800">{car.combustible}</strong>
               </span>
             )}
 
-            {car.ambiental && (
+            {show("ambiental") && car.ambiental && (
               <span className="flex items-center">
                 <EtiquetaDGT tipo={car.ambiental} size={32} />
               </span>
             )}
 
-            {car.km != null && (
+            {show("km") && car.km != null && (
               <span className="flex items-center gap-1">
-                <strong className="text-gray-800">
-                  {car.km.toLocaleString()} km
-                </strong>
+                <IconKm />
+                <strong className="text-gray-800">{car.km.toLocaleString()} km</strong>
               </span>
             )}
           </div>

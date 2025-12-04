@@ -1,150 +1,168 @@
-// src/components/CarCard.tsx
-
 "use client";
 
-import { motion } from "framer-motion";
-import Link from "next/link";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
-import { useState } from "react";
-import { CarForFrontend } from "@/types/CarForFrontend";
-import EtiquetaDGT from "@/components/EtiquetaDGT";
+import { useRouter } from "next/navigation";
 
-interface FieldConfig {
-  label: string;
-  visible: boolean;
-  editable: boolean;
-  type?: string;
-  options?: string[];
+interface SimpleCarouselProps {
+  images: string[];
+  interval?: number;
+  showThumbnails?: boolean;
+  carId?: number; // ⭐ NUEVO
 }
 
-interface CarCardProps {
-  car: CarForFrontend; // Aseguramos que car es recibido como prop
-  fieldConfig: Record<string, FieldConfig>; // Ahora car tiene la propiedad `fieldConfig`
-}
+export default function SimpleCarousel({
+  images,
+  interval = 3000,
+  showThumbnails = true,
+  carId,
+}: SimpleCarouselProps) {
+  const router = useRouter();
 
-export default function CarCard({ car, fieldConfig }: CarCardProps) {
-  const img = car.imagenes?.[0]?.url || "/no-image.jpg";
-  const href = `/coches/${car.id}`;
+  const [index, setIndex] = useState(0);
+  const [hovering, setHovering] = useState(false);
 
-  const [liked, setLiked] = useState(false);
+  const startX = useRef<number | null>(null);
+  const minSwipe = 50;
 
-  const handleHeartClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (liked) return;
+  useEffect(() => setIndex(0), [images]);
 
-    setLiked(true);
+  useEffect(() => {
+    if (!images.length || hovering) return;
+    const t = setInterval(
+      () => setIndex((i) => (i + 1) % images.length),
+      interval
+    );
+    return () => clearInterval(t);
+  }, [images, interval, hovering]);
 
-    const mensaje = `Me interesa el coche ${car.marca} ${car.model}`;
+  const goPrev = () =>
+    setIndex((i) => (i - 1 + images.length) % images.length);
+  const goNext = () => setIndex((i) => (i + 1) % images.length);
 
-    setTimeout(() => {
-      window.location.href = `/contacto?carId=${car.id}&mensaje=${encodeURIComponent(mensaje)}`;
-    }, 300);
+  const handleTouchStart = (e: React.TouchEvent) =>
+    (startX.current = e.touches[0].clientX);
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (startX.current == null) return;
+    const diff = e.changedTouches[0].clientX - startX.current;
+
+    if (diff > minSwipe) goPrev();
+    else if (diff < -minSwipe) goNext();
+
+    startX.current = null;
   };
 
+  const handleClick = () => {
+    if (carId) {
+      router.push(`/coches/${carId}`);
+    }
+  };
+
+  if (!images.length)
+    return <div className="w-full h-72 bg-gray-200" />;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.03 }}
-      transition={{ duration: 0.3 }}
-      className="bg-white rounded-2xl shadow-md hover:shadow-xl overflow-hidden border border-gray-100 transition cursor-pointer"
-    >
-      <Link href={href}>
-        <div className="relative w-full h-56 bg-gray-100">
-          <Image
-            src={img}
-            alt={`${car.marca ?? ""} ${car.model ?? ""}`}
-            fill
-            className="object-cover"
-          />
+    <div className="w-full flex flex-col gap-4">
+      {/* SLIDER */}
+      <div
+        className="group relative w-full rounded-xl overflow-hidden shadow-lg bg-black"
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+      >
+        <div
+          className="relative w-full h-[45vh] min-h-[220px] cursor-pointer"
+          onClick={handleClick}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          {images.map((img, i) => (
+            <Image
+              key={i}
+              src={img}
+              alt={`slide-${i}`}
+              fill
+              className={`absolute inset-0 object-contain transition-opacity duration-700 ${
+                index === i ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          ))}
+        </div>
 
-          <motion.button
-            onClick={handleHeartClick}
-            aria-label="Me interesa"
-            className="absolute top-3 right-3 p-2 rounded-full bg-white/30 backdrop-blur shadow-lg transition flex items-center justify-center"
-            whileTap={{ scale: 0.95 }}
-          >
-            <motion.svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="white"
-              animate={{
-                scale: liked ? [1, 1.18, 1] : 1,
-                fill: liked ? "#ff6b81" : "transparent",
-              }}
-              transition={{
-                scale: { duration: 0.35, ease: "easeOut" },
-                fill: { duration: 3, ease: "linear" },
-              }}
-              className="w-7 h-7"
+        {/* FLECHA PREV */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            goPrev();
+          }}
+          className="
+            hidden sm:flex
+            absolute left-4 top-1/2 -translate-y-1/2
+            w-14 h-14 rounded-full bg-lineal-to-br from-black/40 to-black/10
+            backdrop-blur-md border border-white/20 text-white
+            items-center justify-center shadow-xl opacity-0 group-hover:opacity-100
+            transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_#3b82f6] hover:-translate-x-2
+          "
+        >
+          <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M15.5 19a1 1 0 0 1-.7-.29l-7-7a1 1 0 0 1 0-1.42l7-7a1 1 0 1 1 1.4 1.42L9.91 12l6.29 6.29A1 1 0 0 1 15.5 19z" />
+          </svg>
+        </button>
+
+        {/* FLECHA NEXT */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            goNext();
+          }}
+          className="
+            hidden sm:flex
+            absolute right-4 top-1/2 -translate-y-1/2
+            w-14 h-14 rounded-full bg-lineal-to-br from-black/40 to-black/10
+            backdrop-blur-md border border-white/20 text-white
+            items-center justify-center shadow-xl opacity-0 group-hover:opacity-100
+            transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_#3b82f6] hover:translate-x-2
+          "
+        >
+          <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8.5 5a1 1 0 0 1 .7.29l7 7a1 1 0 0 1 0 1.42l-7 7a1 1 0 1 1-1.4-1.42L14.09 12 7.79 5.71A1 1 0 0 1 8.5 5z" />
+          </svg>
+        </button>
+
+        {/* DOTS */}
+        <div className="absolute bottom-3 inset-x-0 flex justify-center gap-2">
+          {images.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setIndex(i)}
+              className={`w-3 h-3 rounded-full ${
+                i === index ? "bg-white scale-110" : "bg-white/40"
+              } transition`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* MINIATURAS */}
+      {showThumbnails && (
+        <div className="flex gap-2 justify-center flex-wrap">
+          {images.map((src, i) => (
+            <div
+              key={i}
+              onClick={() => setIndex(i)}
+              className={`w-16 h-16 rounded-md overflow-hidden border cursor-pointer ${
+                index === i ? "border-blue-500" : "border-gray-400"
+              }`}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3.172 5.172a4.5 4.5 0 016.364 0L12 7.636l2.464-2.464a4.5 4.5 0 116.364 6.364L12 21.364l-8.828-8.828a4.5 4.5 0 010-6.364z"
+              <img
+                src={src}
+                className="w-full h-full object-cover"
+                alt={`thumb-${i}`}
               />
-            </motion.svg>
-          </motion.button>
-
-          {car.anoFabricacion && (
-            <span className="absolute top-2 left-2 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
-              {car.anoFabricacion}
-            </span>
-          )}
+            </div>
+          ))}
         </div>
-
-        <div className="p-4 space-y-2">
-          <h3 className="text-xl font-bold text-gray-900">
-            {car.marca} {car.model}
-          </h3>
-
-          <p className="text-blue-600 font-extrabold text-2xl">
-            {car.precio?.toLocaleString()} €
-          </p>
-
-          <div className="text-gray-700 text-sm flex flex-wrap items-center gap-x-6 mt-2">
-            {/* Solo mostrar los campos que estén configurados como visibles */}
-            {fieldConfig.potencia?.visible && car.potencia && (
-              <span className="flex items-center gap-1">
-                <IconPotencia />
-                <strong className="text-gray-800">{car.potencia} CV</strong>
-              </span>
-            )}
-
-            {fieldConfig.combustible?.visible && car.combustible && (
-              <span className="flex items-center gap-1">
-                <IconCombustible />
-                <strong className="text-gray-800">{car.combustible}</strong>
-              </span>
-            )}
-
-            {fieldConfig.ambiental?.visible && car.ambiental && (
-              <span className="flex items-center">
-                <EtiquetaDGT tipo={car.ambiental} size={32} />
-              </span>
-            )}
-
-            {fieldConfig.km?.visible && car.km != null && (
-              <span className="flex items-center gap-1">
-                <strong className="text-gray-800">
-                  {car.km.toLocaleString()} km
-                </strong>
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="px-4 pb-4">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="text-center bg-blue-600 text-white py-2 rounded-xl mt-2 font-semibold"
-          >
-            Ver detalles
-          </motion.div>
-        </div>
-      </Link>
-    </motion.div>
+      )}
+    </div>
   );
 }

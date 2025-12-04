@@ -111,7 +111,9 @@ export default function CarPageClient({ id }: { id: string }) {
 
       {/* ---------- CAROUSEL ---------- */}
       {fieldConfig.imagenes?.visible !== false && (
-        <CarCarousel images={images} showThumbnails={false} interval={3000} />
+        <CarCarousel images={images} showThumbnails={false} interval={3000} carId={car.id} />
+      
+
       )}
 
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -134,65 +136,50 @@ export default function CarPageClient({ id }: { id: string }) {
 
           {/* ---------- CAMPOS DINÁMICOS ---------- */}
           <div className="mt-8 space-y-3 text-gray-800 text-lg">
-            {Object.entries(fieldConfig)
-              .filter(([key, config]) => {
-                // Excluir campos especiales que se muestran en otras secciones
-                const specialFields = ['titulo', 'precio', 'imagenes', 'galeria', 'descripcion', 'botonContacto', 'etiqueta'];
-                if (specialFields.includes(key)) return false;
-                
-                // Solo mostrar campos visibles y que tengan valor
-                if (!config.visible) return false;
-                
-                const value = (car as any)[key];
-                if (value === undefined || value === null || value === '') return false;
-                
-                return true;
-              })
-              .map(([key, config]) => {
-                const value = (car as any)[key];
-                let displayValue: string = '';
+{Object.entries(fieldConfig)
+  .filter(([key, config]) => {
+    // Campos que SIEMPRE se muestran en otras secciones
+    const specialFields = ['titulo', 'precio', 'imagenes', 'galeria', 'botonContacto', 'etiqueta', 'descripcion'];
+    if (specialFields.includes(key)) return false;
 
-                // Formatear según el tipo
-                if (config.type === 'boolean') {
-                  displayValue = value ? 'Sí' : 'No';
-                } else if (config.type === 'number') {
-                  if (key === 'potencia') {
-                    displayValue = `${value} CV`;
-                  } else if (key === 'consumo') {
-                    displayValue = `${value} L/100km`;
-                  } else if (key === 'cilindrada') {
-                    displayValue = `${value} cc`;
-                  } else if (key === 'km') {
-                    displayValue = `${value.toLocaleString()} km`;
-                  } else if (key === 'precio') {
-                    displayValue = `${value.toLocaleString()} €`;
-                  } else {
-                    displayValue = value.toString();
-                  }
-                } else if (config.type === 'date') {
-                  const date = new Date(value);
-                  if (!isNaN(date.getTime())) {
-                    displayValue = date.toLocaleDateString('es-ES');
-                  } else {
-                    displayValue = value.toString();
-                  }
-                } else if (config.type === 'select' && config.options) {
-                  // Buscar el label correspondiente al value
-                  const option = config.options.find(
-                    (opt) => (typeof opt === 'string' ? opt : opt.value) === value
-                  );
-                  displayValue = typeof option === 'string' ? option : option?.label || value;
-                } else {
-                  displayValue = value.toString();
-                }
+    // Solo mostrar si es visible en el panel
+    return config.visible;
+  })
+  .map(([key, config]) => {
+    const raw = (car as any)[key];
+    let displayValue = raw;
 
-                return (
-                  <p key={key}>
-                    <strong className="text-amber-500">{config.label}:</strong>
-                    <span className="text-amber-300"> {displayValue}</span>
-                  </p>
-                );
-              })}
+    // Convertir valores según el tipo
+    if (raw === null || raw === undefined || raw === "") {
+      displayValue = "—"; // Mostrar una raya en vez de ocultarlo
+    } else if (config.type === "boolean") {
+      displayValue = raw ? "Sí" : "No";
+    } else if (key === "km") {
+      displayValue = `${raw.toLocaleString()} km`;
+    } else if (key === "consumo") {
+      displayValue = `${raw} L/100km`;
+    } else if (key === "potencia") {
+      displayValue = `${raw} CV`;
+    } else if (key === "cilindrada") {
+      displayValue = `${raw} cc`;
+    } else if (config.type === "date") {
+      const d = new Date(raw);
+      displayValue = d.toLocaleDateString("es-ES");
+    } else if (config.type === "select" && config.options) {
+      const opt = config.options.find(o =>
+        typeof o === "string" ? o === raw : o.value === raw
+      );
+      displayValue = typeof opt === "string" ? opt : opt?.label ?? raw;
+    }
+
+    return (
+      <p key={key}>
+        <strong className="text-amber-500">{config.label}:</strong>
+        <span className="text-amber-300"> {displayValue}</span>
+      </p>
+    );
+  })}
+
           </div>
 
           {/* ---------- ETIQUETA ---------- */}
@@ -222,7 +209,7 @@ export default function CarPageClient({ id }: { id: string }) {
           )}
 
           {/* ---------- DESCRIPCIÓN ---------- */}
-          {fieldConfig.descripcion?.visible !== false && car.descripcion && (
+          { car.descripcion && (
             <div className="mt-8">
               <h3 className="text-2xl font-bold text-amber-500 mb-4">Descripción del coche</h3>
               <p className="text-amber-300 leading-relaxed">
@@ -234,72 +221,73 @@ export default function CarPageClient({ id }: { id: string }) {
 
         {/* ---------- GALERÍA ---------- */}
         {fieldConfig.galeria?.visible !== false && (
-          <aside className="bg-gray-300 p-4 rounded-xl shadow-md">
-            <h2 className="font-bold mb-3 text-gray-700 text-center text-3xl">
-              Galería
-            </h2>
+         <aside className="bg-gray-300 p-4 rounded-xl shadow-md">
 
-            {(() => {
-const videoThumb = (url: string) => {
-  // Para videos normales
-  const matchRegular = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/);
-  if (matchRegular) {
-    return `https://img.youtube.com/vi/${matchRegular[1]}/hqdefault.jpg`;
-  }
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    {/* ---------- COLUMNA IZQUIERDA: VÍDEOS ---------- */}
+    {car.videos && car.videos.length > 0 && (
+      <div className="col-span-1">
+        <h2 className="font-bold mb-3 text-gray-700 text-center text-2xl">
+          Vídeos
+        </h2>
 
-  // Para YouTube Shorts (https://www.youtube.com/shorts/VIDEO_ID)
-  const matchShort = url.match(/(?:shorts\/)([A-Za-z0-9_-]{11})/);
-  if (matchShort) {
-    return `https://img.youtube.com/vi/${matchShort[1]}/hqdefault.jpg`;
-  }
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
+          {car.videos.map((url, i) => {
 
-  return null;  // Si no es un video válido de YouTube
-};
+            const matchRegular = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/);
+            const matchShort = url.match(/(?:shorts\/)([A-Za-z0-9_-]{11})/);
 
-type Item = { type: "image" | "video"; url: string; thumb?: string };
+            const videoId = matchRegular?.[1] || matchShort?.[1] || "";
+            const thumb = videoId
+              ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+              : "/fallback-image.png";
 
-const items: Item[] = [
-  ...images.map((url) => ({ type: "image" as const, url })),
-  ...(car.videos || []).map((url) => ({
-    type: "video" as const,
-    url,
-    thumb: videoThumb(url) || undefined
-  }))
-];
-              return (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {items.map((item, i) => (
-                    <button
-                      key={i}
-                      onClick={() =>
-                        item.type === "image"
-                          ? setImageModal(item.url)
-                          : setVideoModal(item.url)
-                      }
-                      className="relative rounded-lg overflow-hidden shadow-sm border"
-                    >
-                    <img
-                      src={
-                        item.type === "image"
-                          ? item.url || "/fallback-image.png"
-                          : item.thumb || "/fallback-image.png"
-                      }
-                      alt=""
-                      className="object-cover w-full h-28"
-                    />
+            return (
+              <button
+                key={i}
+                onClick={() => setVideoModal(url)}
+                className="relative rounded-lg overflow-hidden shadow border"
+              >
+                <img src={thumb} className="object-cover w-full h-24" />
 
-
-                      {item.type === "video" && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <span className="text-white text-3xl">▶</span>
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                {/* Icono de vídeo */}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <span className="text-white text-2xl">▶</span>
                 </div>
-              );
-            })()}
-          </aside>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    )}
+
+    {/* ---------- COLUMNA DERECHA: GALERÍA ---------- */}
+    <div className="col-span-1 lg:col-span-2">
+      <h2 className="font-bold mb-3 text-gray-700 text-center text-2xl">
+        Galería
+      </h2>
+
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        {images.map((url, i) => (
+          <button
+            key={i}
+            onClick={() => setImageModal(url)}
+            className="relative rounded-lg overflow-hidden shadow-sm border"
+          >
+            <img
+              src={url}
+              className="object-cover w-full h-28"
+            />
+          </button>
+        ))}
+      </div>
+    </div>
+
+  </div>
+
+</aside>
+
         )}
       </div>
 

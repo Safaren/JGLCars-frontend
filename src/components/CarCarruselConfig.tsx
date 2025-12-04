@@ -4,6 +4,8 @@
 
 import { useState, useMemo } from "react";
 
+
+
 interface CarImage {
   url: string;
 }
@@ -74,6 +76,15 @@ export default function CarCarruselConfig({ car, onSave, onCancel }: Props) {
 
   return (
     <div className="bg-white shadow-xl rounded-2xl p-6 space-y-8 border max-w-3xl mx-auto">
+{/* Botón volver si viene del panel */}
+      {onCancel && (
+        <button
+          onClick={onCancel}
+          className="text-sm text-blue-600 underline mb-3"
+        >
+          ← Volver
+        </button>
+      )}
 
       {/* Título */}
       <h2 className="text-2xl font-bold text-blue-700">
@@ -109,6 +120,9 @@ export default function CarCarruselConfig({ car, onSave, onCancel }: Props) {
             Limpiar selección
           </button>
         )}
+
+        
+
       </div>
 
       {/* ERRORES */}
