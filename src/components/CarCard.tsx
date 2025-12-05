@@ -169,6 +169,22 @@ export default function CarCard({ car, fieldConfig = {} }: CarCardProps) {
               {car.anoFabricacion}
             </span>
           )}
+          {/* BADGE: Venta por piezas */}
+{car.tipoVenta === "PIEZAS" && (
+  <div
+    className="
+      absolute top-4 left-1/2 -translate-x-1/2
+      bg-red-600/90 backdrop-blur-sm
+      px-4 py-1
+      rounded-full
+      text-white text-sm font-bold
+      shadow-lg border border-red-300
+    "
+  >
+    Venta por piezas
+  </div>
+)}
+
         </div>
 
         {/* INFO */}
@@ -177,11 +193,21 @@ export default function CarCard({ car, fieldConfig = {} }: CarCardProps) {
             {show("marca") && car.marca} {show("model") && car.model}
           </h3>
 
-          {show("precio") && (
-            <p className="text-blue-600 font-extrabold text-2xl">
-              {typeof car.precio === "number" ? car.precio.toLocaleString() : car.precio} €
-            </p>
-          )}
+       {/* PRECIO O MENSAJE ESPECIAL SEGÚN TIPO DE VENTA */}
+{show("precio") && (
+  car.tipoVenta === "PIEZAS" ? (
+    <p className="text-red-500 font-bold text-lg">
+      Venta por piezas — consultar en contacto
+    </p>
+  ) : (
+    <p className="text-blue-600 font-extrabold text-2xl">
+      {typeof car.precio === "number"
+        ? car.precio.toLocaleString()
+        : car.precio} €
+    </p>
+  )
+)}
+
 
           {/* Línea de especificaciones */}
           <div className="text-gray-700 text-sm flex flex-wrap items-center gap-x-6 mt-2">

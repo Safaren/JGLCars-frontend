@@ -13,7 +13,10 @@ interface Props {
 
 export default function CarTable({ cars, onEdit, onDelete }: Props) {
   const FIELD_CONFIG = loadFieldConfig();
-  const visibleFields = Object.entries(FIELD_CONFIG).filter(([_, cfg]) => cfg.visible);
+ const visibleFields = Object.entries(FIELD_CONFIG).filter(
+  ([key, cfg]) => cfg.visible && (key === "marca" || key === "model")
+);
+
 
   return (
     <div className="overflow-x-auto bg-white rounded-lg shadow p-4">

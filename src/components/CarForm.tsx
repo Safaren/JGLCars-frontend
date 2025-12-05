@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import toast from "react-hot-toast";
 import { loadFieldConfig } from "@/config/carFields";
+
 import type { CarInput } from "@/types";
 import type { CarForFrontend } from "@/types/CarForFrontend";
 
@@ -12,6 +13,7 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
+  DragEndEvent,
 } from "@dnd-kit/core";
 
 import {
@@ -23,42 +25,62 @@ import {
 
 import { CSS } from "@dnd-kit/utilities";
 
+// ----------------------------
+// 🔵 Tipos estrictos añadidos
+// ----------------------------
+interface ExistingPhoto {
+  id: number;
+  url: string;
+}
+
+interface NewPhoto {
+  id: string;
+  url: string;
+  file: File;
+}
+
 interface Props {
   initialData?: CarForFrontend | null;
-  onSave: (data: CarInput) => Promise<any>;
+  onSave: (data: CarInput) => Promise<{ id?: number; error?: string; errors?: Record<string, string> }>;
   onCancel: () => void;
 }
+type FormState = Partial<CarInput> &
+  Partial<CarForFrontend> & {
+    __newVideo?: string;
+    [key: string]: unknown;
+  };
+  
 
 export default function CarForm({ initialData, onSave, onCancel }: Props) {
   const FIELD_CONFIG = loadFieldConfig();
+
   const editableFields = Object.entries(FIELD_CONFIG).filter(
     ([_, cfg]) => cfg.editable
   );
 
-  const [form, setForm] = useState<any>(initialData || {});
-  const [errors, setErrors] = useState<Record<string, boolean>>({});
-  const [savedBackendErrors, setSavedBackendErrors] = useState<
-    Record<string, string>
-  >({});
+  // ⚠ QUITAMOS ANY
+const [form, setForm] = useState<FormState>(
+  (initialData as FormState) || {}
+);
 
-  const [existingFotos, setExistingFotos] = useState<
-    { id: number; url: string }[]
-  >([]);
-  const [newFotos, setNewFotos] = useState<
-    { id: string; url: string; file: File }[]
-  >([]);
+
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [savedBackendErrors, setSavedBackendErrors] = useState<Record<string, string>>({});
+
+  const [existingFotos, setExistingFotos] = useState<ExistingPhoto[]>([]);
+  const [newFotos, setNewFotos] = useState<NewPhoto[]>([]);
 
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-  // Inicializar errores en falso
+  // Inicializar errores
   useEffect(() => {
     const initialErr: Record<string, boolean> = {};
     Object.keys(FIELD_CONFIG).forEach((k) => (initialErr[k] = false));
     setErrors(initialErr);
   }, []);
 
-  // Token helper
-  const authHeaders = (extra: any = {}) => {
+  // Token helper — sin ANY
+  const authHeaders = (extra: Record<string, unknown> = {}) => {
     const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
@@ -68,7 +90,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
     };
   };
 
-  // dnd-kit
+  // Sensores drag & drop
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
@@ -79,17 +101,22 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
 
     fetch(`${API}/fotos-car/${initialData.id}`)
       .then((r) => r.json())
-      .then((fotos) =>
-        setExistingFotos(Array.isArray(fotos) ? fotos : [])
-      )
+      .then((fotos: unknown) => {
+        if (Array.isArray(fotos)) {
+          setExistingFotos(
+            fotos.filter((f) => typeof f.id === "number" && typeof f.url === "string")
+          );
+        }
+      })
       .catch(() => {});
   }, [initialData, API]);
+  // ----------------------------
+  // 🔵 NUEVAS FOTOS (tipo fijo)
+  // ----------------------------
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []) as File[];
 
-  // Nueva(s) fotos
-  const handleFileChange = (e: any) => {
-    const files = Array.from(e.target.files ?? []);
-
-    const mapped = files.map((file: File) => ({
+    const mapped: NewPhoto[] = files.map((file) => ({
       id: crypto.randomUUID(),
       url: URL.createObjectURL(file),
       file,
@@ -98,97 +125,21 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
     setNewFotos((prev) => [...prev, ...mapped]);
   };
 
-  // Sortable EXISTING
-  function SortableImage({ foto }: { foto: { id: number; url: string } }) {
-    const { attributes, listeners, setNodeRef, transform, transition } =
-      useSortable({ id: foto.id });
-
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      touchAction: "none",
-    } as any;
-
-    return (
-      <div className="relative group w-20 h-20 select-none">
-        <button
-          type="button"
-          onClick={() =>
-            setExistingFotos((prev) => prev.filter((f) => f.id !== foto.id))
-          }
-          className="
-          absolute top-0 right-0 w-8 h-8 flex items-center justify-center
-          bg-red-600 text-white rounded-bl-full opacity-0 group-hover:opacity-100
-          transition
-        "
-          style={{ transform: "translate(40%, -40%)" }}
-        >
-          ✕
-        </button>
-
-        <div
-          ref={setNodeRef}
-          {...attributes}
-          {...listeners}
-          style={style}
-          className="w-full h-full rounded overflow-hidden border"
-        >
-          <img
-            src={foto.url}
-            alt=""
-            className="w-full h-full object-cover pointer-events-none"
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // Preview nuevas
-  function PreviewImage({
-    foto,
-  }: {
-    foto: { id: string; url: string; file: File };
-  }) {
-    return (
-      <div className="relative group w-20 h-20 select-none">
-        <button
-          type="button"
-          onClick={() =>
-            setNewFotos((prev) => prev.filter((f) => f.id !== foto.id))
-          }
-          className="
-          absolute top-0 right-0 w-8 h-8 flex items-center justify-center
-          bg-red-600 text-white rounded-bl-full opacity-0 group-hover:opacity-100
-          transition
-        "
-          style={{ transform: "translate(40%, -40%)" }}
-        >
-          ✕
-        </button>
-
-        <div className="w-full h-full rounded overflow-hidden border">
-          <img src={foto.url} alt="" className="w-full h-full object-cover" />
-        </div>
-      </div>
-    );
-  }
-
-  // VALIDACIÓN
+  // ----------------------------
+  // 🔵 Validación
+  // ----------------------------
   const validate = (fields?: string[]) => {
     const newErr = { ...errors };
-
     const keys = fields?.length ? fields : Object.keys(FIELD_CONFIG);
 
     keys.forEach((k) => {
       const cfg = FIELD_CONFIG[k];
-
       if (!cfg.required) {
         newErr[k] = false;
         return;
       }
 
       const value = form[k];
-
       const empty =
         value === null ||
         value === undefined ||
@@ -199,43 +150,39 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
     });
 
     setErrors(newErr);
-
     return !Object.values(newErr).some((v) => v === true);
   };
 
-  // VALIDACIÓN POR CAMPO CUANDO SE PIERDE FOCUS
-  const handleBlur = (field: string) => {
-    validate([field]);
-  };
+  const handleBlur = (field: string) => validate([field]);
 
-  // SUBMIT FINAL con errores del backend
-  const handleSubmit = async (e: any) => {
+  // ----------------------------
+  // 🔵 SUBMIT SIN ANY
+  // ----------------------------
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    // Validación frontend
-    const ok = validate();
-    if (!ok) {
+    if (!validate()) {
       toast.error("Rellena los campos obligatorios");
       return;
     }
 
     let saved;
     try {
-      saved = await onSave(form);
+     saved = await onSave(form as unknown as CarInput);
+
     } catch {
       toast.error("Error guardando");
       return;
     }
 
-    // Si el backend devuelve errors: { campo: msg }
     if (saved?.errors) {
       const backendErr: Record<string, string> = {};
       const newErr = { ...errors };
 
       Object.entries(saved.errors).forEach(([field, msg]) => {
-        backendErr[field] = String(msg);
+        backendErr[field] = msg;
         newErr[field] = true;
-        toast.error(String(msg));
+        toast.error(msg);
       });
 
       setSavedBackendErrors(backendErr);
@@ -243,7 +190,6 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
       return;
     }
 
-    // Error general
     if (saved?.error) {
       toast.error(saved.error);
       return;
@@ -256,7 +202,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
 
     const id = saved.id;
 
-    // Reordenar existentes
+    // Guardar reordenación
     try {
       if (existingFotos.length > 0) {
         await fetch(`${API}/fotos-car/reorder/${id}`, {
@@ -269,7 +215,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
         });
       }
 
-      // Subir nuevas
+      // Subir nuevas fotos
       if (newFotos.length > 0) {
         const fd = new FormData();
         newFotos.forEach((f) => fd.append("files", f.file));
@@ -283,13 +229,15 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
 
       toast.success("Coche guardado");
       onCancel();
-    } catch (err: any) {
-      toast.error(err.message || "Error guardando imágenes");
+    } catch (err) {
+      toast.error("Error guardando imágenes");
     }
   };
 
-  // Drag reorder
-  const handleDragEnd = ({ active, over }: any) => {
+  // ----------------------------
+  // 🔵 Drag reorder (tipado)
+  // ----------------------------
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
 
     const oldIndex = existingFotos.findIndex((f) => f.id === active.id);
@@ -297,6 +245,92 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
 
     setExistingFotos((prev) => arrayMove(prev, oldIndex, newIndex));
   };
+    // ============================
+  //  COMPONENTE: SortableImage
+  // ============================
+  function SortableImage({ foto }: { foto: { id: number; url: string } }) {
+    const { attributes, listeners, setNodeRef, transform, transition } =
+      useSortable({ id: foto.id });
+
+    const style: React.CSSProperties = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      touchAction: "none",
+    };
+
+    return (
+      <div className="relative group w-20 h-20 select-none">
+        {/* Botón eliminar */}
+        <button
+          type="button"
+          onClick={() =>
+            setExistingFotos((prev) => prev.filter((f) => f.id !== foto.id))
+          }
+          className="
+            absolute top-0 right-0 w-7 h-7 flex items-center justify-center
+            bg-red-600 text-white rounded-bl-full opacity-0 group-hover:opacity-100
+            transition
+          "
+          style={{ transform: "translate(40%, -40%)" }}
+        >
+          ✕
+        </button>
+
+        {/* Imagen sortable */}
+        <div
+          ref={setNodeRef}
+          {...attributes}
+          {...listeners}
+          style={style}
+          className="w-full h-full rounded overflow-hidden border"
+        >
+          <img
+            src={foto.url}
+            alt="imagen existente"
+            className="w-full h-full object-cover pointer-events-none"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ============================
+  //  COMPONENTE: PreviewImage
+  // ============================
+  function PreviewImage({
+    foto,
+  }: {
+    foto: { id: string; url: string; file: File };
+  }) {
+    return (
+      <div className="relative group w-20 h-20 select-none">
+        {/* Botón eliminar */}
+        <button
+          type="button"
+          onClick={() =>
+            setNewFotos((prev) => prev.filter((f) => f.id !== foto.id))
+          }
+          className="
+            absolute top-0 right-0 w-7 h-7 flex items-center justify-center
+            bg-red-600 text-white rounded-bl-full opacity-0 group-hover:opacity-100
+            transition
+          "
+          style={{ transform: "translate(40%, -40%)" }}
+        >
+          ✕
+        </button>
+
+        {/* Imagen preview */}
+        <div className="w-full h-full rounded overflow-hidden border">
+          <img
+            src={foto.url}
+            alt="nueva imagen"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -304,31 +338,28 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
         onSubmit={handleSubmit}
         className="bg-white p-6 rounded shadow space-y-4"
       >
-        {/* === CAMPOS === */}
+        {/* === CAMPOS DEL FORM === */}
         {editableFields.map(([key, cfg]) => {
           const isError = errors[key];
           const backendMsg = savedBackendErrors[key];
-          const showErrorMsg = isError;
 
-          // NO visible → no se muestra
           if (!cfg.visible) return null;
 
           return (
             <div key={key} className="flex flex-col gap-1">
               <label className="font-semibold">
-                {cfg.label}{" "}
-                {cfg.required && <span className="text-red-500">*</span>}
+                {cfg.label} {cfg.required && <span className="text-red-500">*</span>}
               </label>
 
-              {/* Videos */}
+              {/* ---- VIDEOS ---- */}
               {key === "videos" && (
                 <div className="space-y-3">
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      value={form.__newVideo ?? ""}
+                      value={(form as any).__newVideo ?? ""}
                       onChange={(e) =>
-                        setForm({ ...form, __newVideo: e.target.value })
+                        setForm((prev) => ({ ...prev, __newVideo: e.target.value }))
                       }
                       placeholder="Pega URL de YouTube"
                       className="border p-2 rounded"
@@ -338,48 +369,43 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
                       type="button"
                       className="bg-green-600 text-white px-3 py-2 rounded"
                       onClick={() => {
-                        if (!form.__newVideo?.trim()) return;
+                        const val = (form as any).__newVideo?.trim();
+                        if (!val) return;
 
-                        setForm({
-                          ...form,
-                          videos: [
-                            ...(form.videos ?? []),
-                            form.__newVideo.trim(),
-                          ],
+                        setForm((prev) => ({
+                          ...prev,
+                          videos: [ ...(prev.videos as string[] ?? []), val ],
                           __newVideo: "",
-                        });
+                        }));
 
                         if (errors["videos"])
-                          setErrors({ ...errors, videos: false });
+                          setErrors((err) => ({ ...err, videos: false }));
                       }}
                     >
                       Añadir
                     </button>
                   </div>
 
-                  {form.videos?.map((v: string, i: number) => (
-                    <div
-                      key={i}
-                      className="flex gap-3 items-center border p-2 rounded"
-                    >
+                  {(form.videos as string[] | undefined)?.map((v, i) => (
+                    <div key={i} className="flex items-center gap-3 border p-2 rounded">
                       <input
                         type="text"
                         value={v}
                         onChange={(e) => {
-                          const arr = [...form.videos];
+                          const arr = [...(form.videos as string[])];
                           arr[i] = e.target.value;
-                          setForm({ ...form, videos: arr });
+                          setForm((prev) => ({ ...prev, videos: arr }));
                         }}
                         className="border p-2 rounded flex-1"
                       />
                       <button
                         type="button"
-                        onClick={() => {
-                          const arr = [...form.videos];
-                          arr.splice(i, 1);
-                          setForm({ ...form, videos: arr });
-                        }}
                         className="bg-red-600 text-white px-2 py-1 rounded"
+                        onClick={() => {
+                          const arr = [...(form.videos as string[])];
+                          arr.splice(i, 1);
+                          setForm((prev) => ({ ...prev, videos: arr }));
+                        }}
                       >
                         ✕
                       </button>
@@ -388,24 +414,25 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
                 </div>
               )}
 
-              {/* SELECT */}
+              {/* ---- SELECT ---- */}
               {key !== "videos" && cfg.type === "select" && (
                 <>
                   <select
                     name={key}
-                    value={form[key] ?? ""}
+                    value={(form[key] as string) ?? ""}
                     onChange={(e) => {
-                      setForm({ ...form, [key]: e.target.value });
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }));
                       if (errors[key])
-                        setErrors({ ...errors, [key]: false });
+                        setErrors((prev) => ({ ...prev, [key]: false }));
                     }}
                     onBlur={() => handleBlur(key)}
-                    className={`border p-2 rounded transition-all duration-300 ${
+                    className={`border p-2 rounded transition ${
                       isError ? "border-red-500 shake" : "border-gray-300"
                     }`}
                   >
                     <option value="">Seleccionar...</option>
-                    {cfg.options?.map((o: any) =>
+
+                    {cfg.options?.map((o) =>
                       typeof o === "string" ? (
                         <option key={o} value={o}>
                           {o}
@@ -418,7 +445,7 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
                     )}
                   </select>
 
-                  {showErrorMsg && (
+                  {isError && (
                     <p className="text-red-500 text-xs fade-in">
                       {backendMsg ?? "Obligatorio"}
                     </p>
@@ -426,14 +453,14 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
                 </>
               )}
 
-              {/* TEXT / NUMBER */}
+              {/* ---- TEXT / NUMBER ---- */}
               {(cfg.type === "text" || cfg.type === "number") &&
                 key !== "videos" && (
                   <>
                     <input
                       name={key}
                       type={cfg.type}
-                      value={form[key] ?? ""}
+                      value={(form[key] as string | number | undefined) ?? ""}
                       onChange={(e) => {
                         const val =
                           cfg.type === "number"
@@ -441,17 +468,19 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
                               ? ""
                               : Number(e.target.value)
                             : e.target.value;
-                        setForm({ ...form, [key]: val });
+
+                        setForm((prev) => ({ ...prev, [key]: val }));
+
                         if (errors[key])
-                          setErrors({ ...errors, [key]: false });
+                          setErrors((prev) => ({ ...prev, [key]: false }));
                       }}
                       onBlur={() => handleBlur(key)}
-                      className={`border p-2 rounded transition-all duration-300 ${
+                      className={`border p-2 rounded transition ${
                         isError ? "border-red-500 shake" : "border-gray-300"
                       }`}
                     />
 
-                    {showErrorMsg && (
+                    {isError && (
                       <p className="text-red-500 text-xs fade-in">
                         {backendMsg ?? "Obligatorio"}
                       </p>
@@ -459,24 +488,24 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
                   </>
                 )}
 
-              {/* DATE */}
+              {/* ---- FECHA ---- */}
               {cfg.type === "date" && (
                 <>
                   <input
-                    name={key}
                     type="date"
-                    value={form[key]?.substring(0, 10) ?? ""}
+                    name={key}
+                    value={(form[key] as string)?.substring(0, 10) ?? ""}
                     onChange={(e) => {
-                      setForm({ ...form, [key]: e.target.value });
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }));
                       if (errors[key])
-                        setErrors({ ...errors, [key]: false });
+                        setErrors((prev) => ({ ...prev, [key]: false }));
                     }}
                     onBlur={() => handleBlur(key)}
-                    className={`border p-2 rounded transition-all duration-300 ${
+                    className={`border p-2 rounded transition ${
                       isError ? "border-red-500 shake" : "border-gray-300"
                     }`}
                   />
-                  {showErrorMsg && (
+                  {isError && (
                     <p className="text-red-500 text-xs fade-in">
                       {backendMsg ?? "Obligatorio"}
                     </p>
@@ -484,14 +513,14 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
                 </>
               )}
 
-              {/* BOOLEAN */}
+              {/* ---- BOOLEAN ---- */}
               {cfg.type === "boolean" && (
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={!!form[key]}
+                    checked={Boolean(form[key])}
                     onChange={(e) =>
-                      setForm({ ...form, [key]: e.target.checked })
+                      setForm((prev) => ({ ...prev, [key]: e.target.checked }))
                     }
                     className="w-4 h-4"
                   />
@@ -502,24 +531,42 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
           );
         })}
 
-        {/* FOTOS NUEVAS */}
+        {/* ---- INPUT ARCHIVOS ---- */}
         <div>
           <label className="font-bold">Imágenes</label>
           <input type="file" multiple onChange={handleFileChange} />
         </div>
 
+        {/* ---- Previews nuevas ---- */}
         {newFotos.length > 0 && (
           <div>
             <p className="text-sm text-gray-500 mb-1">Nuevas imágenes</p>
             <div className="grid grid-cols-3 gap-3 mt-2">
               {newFotos.map((f) => (
-                <PreviewImage key={f.id} foto={f} />
+                <div key={f.id} className="relative group w-20 h-20">
+                  <button
+                    type="button"
+                    className="absolute top-0 right-0 w-7 h-7 bg-red-600 text-white rounded-bl-full opacity-0 group-hover:opacity-100 transition"
+                    onClick={() =>
+                      setNewFotos((prev) => prev.filter((x) => x.id !== f.id))
+                    }
+                    style={{ transform: "translate(40%, -40%)" }}
+                  >
+                    ✕
+                  </button>
+
+                  <img
+                    src={f.url}
+                    alt="preview"
+                    className="w-full h-full object-cover rounded border"
+                  />
+                </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* FOTOS EXISTENTES */}
+        {/* ---- Imágenes existentes ---- */}
         {existingFotos.length > 0 && (
           <div>
             <p className="text-sm text-gray-500 mb-1">Imágenes existentes</p>
@@ -534,8 +581,8 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
                 strategy={rectSortingStrategy}
               >
                 <div className="grid grid-cols-3 gap-3 mt-2">
-                  {existingFotos.map((f) => (
-                    <SortableImage key={f.id} foto={f} />
+                  {existingFotos.map((foto) => (
+                    <SortableImage key={foto.id} foto={foto} />
                   ))}
                 </div>
               </SortableContext>
@@ -543,59 +590,34 @@ export default function CarForm({ initialData, onSave, onCancel }: Props) {
           </div>
         )}
 
-        {/* BOTONES */}
+        {/* ---- BOTONES ---- */}
         <div className="flex gap-3 pt-4">
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded shadow"
-          >
+          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded shadow">
             Guardar
           </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="border px-4 py-2 rounded"
-          >
+          <button type="button" onClick={onCancel} className="border px-4 py-2 rounded">
             Cancelar
           </button>
         </div>
       </form>
 
-      {/* Animaciones globales */}
+      {/* ---- Animaciones ---- */}
       <style jsx global>{`
         @keyframes shake {
-          0% {
-            transform: translateX(0);
-          }
-          20% {
-            transform: translateX(-6px);
-          }
-          40% {
-            transform: translateX(4px);
-          }
-          60% {
-            transform: translateX(-3px);
-          }
-          80% {
-            transform: translateX(2px);
-          }
-          100% {
-            transform: translateX(0);
-          }
+          0% { transform: translateX(0); }
+          20% { transform: translateX(-6px); }
+          40% { transform: translateX(4px); }
+          60% { transform: translateX(-3px); }
+          80% { transform: translateX(2px); }
+          100% { transform: translateX(0); }
         }
         .shake {
           animation: shake 0.22s ease-in-out;
         }
 
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-4px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(-4px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
         .fade-in {
           animation: fadeIn 0.22s ease-out forwards;

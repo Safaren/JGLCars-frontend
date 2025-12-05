@@ -48,7 +48,26 @@ async function request(url: string, options: Opts = {}) {
 // --------------------------------------------------
 
 export async function getCars() {
-  return await request(`${API}/cars`);
+  let API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+  // Evitar /api/api
+  if (API.endsWith("/api")) API = API.replace(/\/api$/, "");
+
+  const res = await fetch(`${API}/api/cars?page=1&limit=9999`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) return [];
+
+  const data = await res.json();
+
+  // Backend paginado
+  if (Array.isArray(data.items)) return data.items;
+
+  // Modo fallback si backend devuelve array plano por cualquier motivo
+  if (Array.isArray(data)) return data;
+
+  return [];
 }
 
 export async function getCar(id: number) {

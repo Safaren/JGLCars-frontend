@@ -1,24 +1,33 @@
-/// src/app/page.tsx
+// src/app/page.tsx
 import React from "react";
 import HomeClient from "@/components/HomeClient";
 import { siteConfig } from "./metadata";
 
 export const revalidate = 60; // ISR corto: refresca cada 60s
 
+function normalizeApiBase(url?: string) {
+  if (!url) return "";
+  // Evitar que la URL final sea http://host:4000/api/api/...
+  return url.endsWith("/api") ? url.replace(/\/api$/, "") : url;
+}
+
 export async function generateMetadata(): Promise<any> {
-  // Traemos algunos coches para enriquecer openGraph (puede fallar en dev si API no accesible)
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const rawApi = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const apiUrl = normalizeApiBase(rawApi);
+
   let firstImage = null;
   try {
-    const res = await fetch(`${apiUrl}/cars`, { cache: "force-cache" });
+    // Pedimos 1 página corta para metadata (no necesitamos muchos datos)
+    const res = await fetch(`${apiUrl}/api/cars?page=1&limit=3`, { cache: "force-cache" });
     if (res.ok) {
-      const cars = await res.json();
-      if (cars && cars.length > 0 && cars[0].imagenes?.length > 0) {
-        firstImage = cars[0].imagenes[0].url;
+      const data = await res.json();
+      const items = Array.isArray(data.items) ? data.items : Array.isArray(data) ? data : [];
+      if (items.length > 0 && items[0].imagenes?.length > 0) {
+        firstImage = items[0].imagenes[0].url;
       }
     }
   } catch (e) {
-    // ignoramos errores de fetch para no romper el build
+    // ignoramos errores para no romper el build
   }
 
   return {
@@ -41,13 +50,26 @@ export async function generateMetadata(): Promise<any> {
 }
 
 export default async function Page() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const rawApi = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const apiUrl = normalizeApiBase(rawApi);
 
-  // Cargamos coches en el servidor para SSR/SEO (mejor para indexación)
-  let cars = [];
+  // SSR: cargamos unos coches para la home (mejor para SEO)
+  let cars: any[] = [];
   try {
-    const res = await fetch(`${apiUrl}/cars`, { cache: "no-store" });
-    if (res.ok) cars = await res.json();
+    // Pedimos una página corta para la home
+    const res = await fetch(`${apiUrl}/api/cars?page=1&limit=6`, { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      // La API paginada devuelve { items, page, total, hasMore }
+      if (Array.isArray(data.items)) {
+        cars = data.items;
+      } else if (Array.isArray(data)) {
+        // compatibilidad por si la API devolviera un array (fallback)
+        cars = data;
+      } else {
+        cars = [];
+      }
+    }
   } catch (e) {
     cars = [];
   }

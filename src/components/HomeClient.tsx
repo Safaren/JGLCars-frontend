@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import CarCard from "@/components/CarCard";
-import CarCarouselGlobal from "@/components/CarCarouselData"; // ← tu carrusel correcto
+import CarCarouselGlobal from "@/components/CarCarouselData";
 import { getCars } from "@/lib/api";
 import { CarForFrontend } from "@/types/CarForFrontend";
 
@@ -14,34 +14,32 @@ export default function HomeClient({
 }) {
   const [cars, setCars] = useState<CarForFrontend[]>(initialCars || []);
 
-  // Si no hay datos iniciales (ej: SSR), cargar coches en cliente
+  // Cargar coches si SSR no trajo datos
   useEffect(() => {
-    if (cars && cars.length > 0) return;
+    if (initialCars && initialCars.length > 0) return;
 
     const load = async () => {
-      try {
-        const data = await getCars();
-        setCars(Array.isArray(data) ? data : []);
-      } catch {
-        setCars([]);
-      }
+      const data = await getCars(); // <-- ahora devuelve un array SIEMPRE
+      setCars(data);
     };
 
     load();
   }, []);
 
   // Filtrar destacados
-  const destacados = Array.isArray(cars)
-    ? cars.filter((c) => Boolean(c.destacado))
-    : [];
+  const destacados = cars.filter((c) => Boolean(c.destacado));
 
   return (
     <main className="min-h-screen px-6 lg:px-16 mt-20">
 
-      {/* 🔵 CARRUSEL GLOBAL (CON MINIATURAS) */}
+      {/* 🔵 CARRUSEL GLOBAL */}
       {destacados.length > 0 && (
         <div className="mb-16">
-          <CarCarouselGlobal cars={destacados} interval={4500} showThumbnails={true}/>
+          <CarCarouselGlobal
+            cars={destacados}
+            interval={4500}
+            showThumbnails={true}
+          />
         </div>
       )}
 
@@ -50,12 +48,14 @@ export default function HomeClient({
         Coches de ocasión disponibles
       </h2>
 
-      {/* GRID DE COCHES */}
+      {/* GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-16">
         {cars.length > 0 ? (
           cars.map((car) => <CarCard key={car.id} car={car} />)
         ) : (
-          <p className="text-gray-500">No hay coches disponibles en este momento.</p>
+          <p className="text-gray-500">
+            No hay coches disponibles en este momento.
+          </p>
         )}
       </div>
     </main>

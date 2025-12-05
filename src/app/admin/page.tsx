@@ -7,19 +7,34 @@ import CarForm from "@/components/CarForm";
 import CarTable from "@/components/CarTable";
 import CarFieldsConfig from "@/components/CarFieldsConfig";
 import CarCarruselPanel from "@/components/CarCarruselPanel";
+import CarCarruselConfig from "@/components/CarCarruselConfig";
+
 
 import {
-  getCars,
   addCar,
   updateCar,
   deleteCar,
   updateCarrusel,
 } from "@/lib/api";
 
+import { getCarsPaginated } from "@/api/getCarsPaginated";
+
 import { CarForFrontend } from "@/types/CarForFrontend";
 import { CarInput } from "@/types";
 import toast from "react-hot-toast";
 import { useAuth } from "@/hooks/useAuth";
+
+// ===============================
+// 🔧 Sanitizar coche del backend
+// ===============================
+const sanitizeCar = (car: any): CarForFrontend => ({
+  ...car,
+  imagenes: Array.isArray(car.imagenes)
+    ? car.imagenes.map((i: any) => ({ url: i.url }))
+    : [],
+  destacado: Boolean(car.destacado),
+  carruselFotos: Array.isArray(car.carruselFotos) ? car.carruselFotos : [],
+});
 
 type CarruselConfigInput = {
   destacado: boolean;
@@ -39,34 +54,77 @@ export default function AdminPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [carToDelete, setCarToDelete] = useState<number | null>(null);
 
-  // 🔧 Sanitizar coche para frontend
-  const sanitizeCar = (car: any): CarForFrontend => ({
-    ...car,
-    imagenes: Array.isArray(car.imagenes)
-      ? car.imagenes.map((i: any) => ({ url: i.url }))
-      : [],
-    destacado: Boolean(car.destacado),
-    carruselFotos: Array.isArray(car.carruselFotos) ? car.carruselFotos : [],
-  });
+  // Nuevo estado para paginación
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  // 📌 Cargar coches desde API
-  const loadCars = async () => {
+  const [selectedCarForCarousel, setSelectedCarForCarousel] = useState<CarForFrontend | null>(null);
+
+
+  // ===============================
+  // 📌 Cargar coches desde API (paginado)
+  // ===============================
+  const loadCars = async (pageNumber = 1) => {
+    
+
     try {
-      const data = await getCars();
-      const formatted = data?.map((c: any) => sanitizeCar(c)) || [];
-      setCars(formatted);
+      const { cars: newCars, hasMore } = await getCarsPaginated(pageNumber);
+
+      const sanitized = newCars.map((c: any) => sanitizeCar(c));
+console.log("📥 PAGINA:", pageNumber, newCars);
+      setCars((prev) => {
+        if (pageNumber === 1) return sanitized;
+
+        // evitar duplicados
+        const ids = new Set(prev.map((x) => x.id));
+        const filtered = sanitized.filter((c: CarForFrontend) => !ids.has(c.id));
+
+        return [...prev, ...filtered];
+      });
+
+      return hasMore;
     } catch (err) {
       console.error("❌ Error cargando coches:", err);
-      setCars([]);
+      return false;
     }
   };
 
-  // Cargar coches cuando hay usuario
+  // ===============================
+  // 📌 Cargar coches cuando hay usuario
+  // ===============================
   useEffect(() => {
-    if (user) loadCars();
+    if (!user) return;
+    loadCars(1).then(setHasMore);
   }, [user]);
 
+  // ===============================
+  // 🔄 Scroll infinito en sección "cars"
+  // ===============================
+  useEffect(() => {
+    if (section !== "cars") return;
+
+    const handleScroll = async () => {
+      if (!hasMore) return;
+
+      const nearBottom =
+        window.innerHeight + window.scrollY >=
+        document.body.offsetHeight - 300;
+
+      if (nearBottom) {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        const more = await loadCars(nextPage);
+        setHasMore(more);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [section, page, hasMore]);
+
+  // ===============================
   // 📌 Guardar coche
+  // ===============================
   const handleSaveCar = async (data: CarInput) => {
     try {
       let savedCar;
@@ -77,6 +135,12 @@ export default function AdminPage() {
       }
 
       toast.success("Coche guardado correctamente 🚗✨");
+
+      // recargar lista desde página 1
+      setCars([]);
+      setPage(1);
+      loadCars(1).then(setHasMore);
+
       return savedCar;
     } catch (err) {
       console.error(err);
@@ -85,29 +149,43 @@ export default function AdminPage() {
     }
   };
 
+  // ===============================
   // 📌 Guardar configuración de carrusel
+  // ===============================
   const saveCarruselConfig = async (id: number, data: CarruselConfigInput) => {
     try {
       await updateCarrusel(id, data);
       toast.success("Configuración guardada ✔");
-      loadCars();
+
+      // refrescar lista
+      setCars([]);
+      setPage(1);
+      loadCars(1).then(setHasMore);
+
     } catch (err) {
       console.error(err);
       toast.error("No se pudo guardar la configuración");
     }
   };
 
+  // ===============================
   // 📌 Eliminar coche
+  // ===============================
   const handleDeleteCar = async (id: number) => {
-    if (id && carToDelete !== null) {
-      try {
-        await deleteCar(id);
-        toast.success("Coche eliminado correctamente 🚗💨");
-        setShowDeleteModal(false);
-        loadCars();
-      } catch (err) {
-        toast.error("No se pudo eliminar el coche");
-      }
+    if (!id) return;
+
+    try {
+      await deleteCar(id);
+      toast.success("Coche eliminado correctamente 🚗💨");
+      setShowDeleteModal(false);
+
+      // refrescar lista
+      setCars([]);
+      setPage(1);
+      loadCars(1).then(setHasMore);
+
+    } catch (err) {
+      toast.error("No se pudo eliminar el coche");
     }
   };
 
@@ -116,6 +194,9 @@ export default function AdminPage() {
     setCarToDelete(null);
   };
 
+  // ===============================
+  // RENDER
+  // ===============================
   return (
     <div className="p-6 max-w-6xl mx-auto">
 
@@ -242,11 +323,24 @@ export default function AdminPage() {
       )}
 
       {/* PANEL CARRUSEL */}
-      {section === "carousel" && (
-        <CarCarruselPanel
-  
-        />
-      )}
+{section === "carousel" && !selectedCarForCarousel && (
+  <CarCarruselPanel
+    onSelectCar={(car) => setSelectedCarForCarousel(car)}
+  />
+)}
+
+{section === "carousel" && selectedCarForCarousel && (
+  <CarCarruselConfig
+    car={selectedCarForCarousel}
+    onSave={async (data) => {
+      await saveCarruselConfig(selectedCarForCarousel.id, data);
+      setSelectedCarForCarousel(null);
+      loadCars();
+    }}
+    onCancel={() => setSelectedCarForCarousel(null)}
+  />
+)}
+
 
       {/* PANEL CAMPOS */}
       {section === "fields" && (

@@ -1,3 +1,12 @@
+// src/types/FieldConfig.ts
+
+export type FieldType = "text" | "number" | "select" | "date" | "boolean";
+
+export interface OptionItem {
+  label: string;
+  value: string;
+}
+
 export interface FieldConfig {
   label: string;
   visible: boolean;
@@ -5,5 +14,5 @@ export interface FieldConfig {
   type: FieldType;
   options?: Array<string | OptionItem>;
   required?: boolean;
-  order?: number; // ⬅️ opcional para que no te rompa nada
+  order?: number;
 }

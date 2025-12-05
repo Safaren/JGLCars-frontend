@@ -128,11 +128,20 @@ export default function CarPageClient({ id }: { id: string }) {
           )}
 
           {/* PRECIO */}
-          {fieldConfig.precio?.visible !== false && car.precio && (
-            <p className="text-cyan-400 text-3xl font-bold mt-3">
-              {car.precio.toLocaleString()} €
-            </p>
-          )}
+{/* PRECIO O VENTA POR PIEZAS */}
+{fieldConfig.precio?.visible !== false && (
+  car.tipoVenta === "PIEZAS" ? (
+    <p className="text-red-400 text-2xl font-bold mt-3">
+      Venta por piezas — consultar en contacto
+    </p>
+  ) : (
+    car.precio && (
+      <p className="text-cyan-400 text-3xl font-bold mt-3">
+        {car.precio.toLocaleString()} €
+      </p>
+    )
+  )
+)}
 
           {/* ---------- CAMPOS DINÁMICOS ---------- */}
           <div className="mt-8 space-y-3 text-gray-800 text-lg">

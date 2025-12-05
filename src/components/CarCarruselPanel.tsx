@@ -1,144 +1,118 @@
-// src/components/CarCarruselPanel.tsx
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import CarCarruselConfig from "@/components/CarCarruselConfig";
-import { getCars } from "@/lib/api";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { getCarsPaginated } from "@/api/getCarsPaginated";
 import { CarForFrontend } from "@/types/CarForFrontend";
 
-export default function CarCarruselPanel() {
+interface CarCarruselPanelProps {
+  onSelectCar?: (car: CarForFrontend) => void;
+}
+
+export default function CarCarruselPanel({ onSelectCar }: CarCarruselPanelProps) {
   const [cars, setCars] = useState<CarForFrontend[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [editingCar, setEditingCar] = useState<CarForFrontend | null>(null);
-  const [search, setSearch] = useState("");
+  const loadingRef = useRef<HTMLDivElement | null>(null);
 
-  const observerRef = useRef<HTMLDivElement | null>(null);
-  const observerInstance = useRef<IntersectionObserver | null>(null);
+  // ================================
+  // 🔵 Cargar página con paginación
+  // ================================
+  const loadPage = useCallback(async () => {
+    if (!hasMore || loading) return;
 
-  const uniqueCars = Array.from(new Map(cars.map(c => [c.id, c])).values());
-
-  // Cargar coches paginados
-  async function loadCars() {
-    if (loading || !hasMore) return;
     setLoading(true);
 
-    try {
-      const data = await getCars(page);
+    const result = await getCarsPaginated(page);
+    const newCars = result.cars ?? [];
+    const nextPageHasMore = result.hasMore;
 
-      if (!Array.isArray(data) || data.length === 0) {
-        setHasMore(false);
-      } else {
-        setCars(prev => {
-          const merged = [...prev, ...data];
-          return Array.from(new Map(merged.map(c => [c.id, c])).values());
-        });
-      }
-    } catch (err) {
-      console.error("Error cargando coches:", err);
-    }
+    setCars((prev) => {
+      const ids = new Set(prev.map((x) => x.id));
+      const filtered = newCars.filter((c: CarForFrontend) => !ids.has(c.id));
 
+      return [...prev, ...filtered];
+    });
+
+    setHasMore(Boolean(nextPageHasMore));
     setLoading(false);
-  }
+  }, [page, hasMore, loading]);
 
-  // Cargar al cambiar page
+  // ================================
+  // 🔵 Ejecutar carga cuando cambie "page"
+  // ================================
   useEffect(() => {
-    loadCars();
-  }, [page]);
+    // Evitamos "setState inside effect" ejecutando en tick siguiente
+    Promise.resolve().then(() => void loadPage());
+  }, [loadPage]);
 
-  // IntersectionObserver (corregido)
+  // ================================
+  // 🔵 Observador infinito
+  // ================================
   useEffect(() => {
-    if (!observerRef.current) return;
+    const node = loadingRef.current;
+    if (!node) return;
 
-    // limpiar observer previo
-    if (observerInstance.current) {
-      observerInstance.current.disconnect();
-    }
-
-    observerInstance.current = new IntersectionObserver(
-      entries => {
+    const observer = new IntersectionObserver(
+      (entries) => {
         if (entries[0].isIntersecting && hasMore && !loading) {
-          setPage(p => p + 1);
+          setPage((p) => p + 1);
         }
       },
-      { rootMargin: "300px" }
+      {
+        root: null,
+        rootMargin: "200px",
+        threshold: 0.1,
+      }
     );
 
-    observerInstance.current.observe(observerRef.current);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, loading]);
 
-    return () => {
-      observerInstance.current?.disconnect();
-    };
-  }, [hasMore, loading]); // ← ¡corregido!
-
-  // Filtrado
-  const filteredCars = uniqueCars.filter(car => {
-    const term = search.toLowerCase();
-    return (
-      car.marca?.toLowerCase().includes(term) ||
-      car.model?.toLowerCase().includes(term) ||
-      String(car.id).includes(term)
-    );
-  });
-
+  // ================================
+  // 🔵 Render
+  // ================================
   return (
     <div className="space-y-8">
+      <h2 className="text-2xl font-bold text-blue-100">Carrusel admin</h2>
 
-      <input
-        type="text"
-        placeholder="Buscar por marca, modelo o ID..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        className="w-full p-3 border rounded-lg shadow-sm"
-      />
-
-      {editingCar ? (
-        <div>
-          <button
-            onClick={() => setEditingCar(null)}
-            className="mb-4 text-blue-600 underline"
+      {/* LISTADO */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {cars.map((car) => (
+          <div
+            key={car.id}
+            onClick={() => onSelectCar?.(car)}
+            className="
+              border p-4 rounded-xl bg-white shadow 
+              cursor-pointer hover:bg-blue-50 transition
+            "
           >
-            ← Volver
-          </button>
+            <p className="font-semibold">
+              {car.marca} {car.model}
+            </p>
 
-          <CarCarruselConfig
-            car={editingCar}
-            onSave={(data) => {
-              console.log("Guardando miniaturas del coche", editingCar.id, data);
-              setEditingCar(null);
-            }}
-            onCancel={() => setEditingCar(null)}
-          />
-        </div>
-      ) : (
-        <>
-          <div className="space-y-3">
-            {filteredCars.map(car => (
-              <button
-                key={car.id}
-                onClick={() => setEditingCar(car)}
-                className="w-full p-4 border rounded-lg shadow-sm bg-white flex justify-between items-center hover:bg-blue-50 transition"
-              >
-                <div>
-                  <p className="font-semibold">{car.marca} {car.model}</p>
-                  <p className="text-sm text-gray-500">ID: {car.id}</p>
-                </div>
+            {car.precio && car.tipoVenta !== "PIEZAS" && (
+              <p className="text-lg font-bold text-blue-600 mt-2">
+                {car.precio.toLocaleString()} €
+              </p>
+            )}
 
-                <p className="text-blue-600 font-bold">
-                  {car.precio?.toLocaleString()} €
-                </p>
-              </button>
-            ))}
+            {car.tipoVenta === "PIEZAS" && (
+              <p className="text-sm mt-2 font-semibold text-red-600">
+                Venta por piezas
+              </p>
+            )}
           </div>
+        ))}
+      </div>
 
-          {loading && (
-            <p className="text-center text-gray-500 mt-4">Cargando más coches...</p>
-          )}
-
-          <div ref={observerRef} className="h-10" />
-        </>
-      )}
+      {/* LOADING + OBSERVER */}
+      <div ref={loadingRef} className="text-center py-6 text-gray-600">
+        {loading && "Cargando más coches..."}
+        {!loading && hasMore && "Desplázate para cargar más"}
+        {!hasMore && "No hay más coches"}
+      </div>
     </div>
   );
 }
