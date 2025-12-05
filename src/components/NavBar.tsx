@@ -63,7 +63,7 @@ export default function NavBar() {
             {!user ? (
               <>
                 <Link href="/login" onClick={() => setOpen(false)}>Login</Link>
-                <Link href="/registro" onClick={() => setOpen(false)}>Registrarse</Link>
+                {/*<Link href="/registro" onClick={() => setOpen(false)}>Registrarse</Link>*/}
               </>
             ) : (
               <>

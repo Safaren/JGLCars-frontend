@@ -132,21 +132,25 @@ export default function CarCarouselGlobal({
   const slide = slides[index];
   const fotos = slide.fotos;
 
-  // 🟦 OCULTAR HINTS AL PRIMER TOUCH O CLICK
-  useEffect(() => {
-    const hide = () => setShowHints(false);
+ // 🟦 CONTROLAR VISIBILIDAD DE HINTS
+useEffect(() => {
+  const hide = () => setShowHints(false);
 
-    window.addEventListener("touchstart", hide, { once: true });
-    window.addEventListener("mousedown", hide, { once: true });
+  // En desktop: ocultar al primer click (mousedown) — sigue siendo útil
+  window.addEventListener("mousedown", hide, { once: true });
 
-    const t = setTimeout(hide, 4000);
+  // En touch: preferimos ocultar al terminar el gesto (touchend)
+  window.addEventListener("touchend", hide, { once: true });
 
-    return () => {
-      window.removeEventListener("touchstart", hide);
-      window.removeEventListener("mousedown", hide);
-      clearTimeout(t);
-    };
-  }, []);
+  // Fallback: ocultar pasado un tiempo por si el usuario mantiene el dedo mucho tiempo
+  const t = window.setTimeout(hide, 4000);
+
+  return () => {
+    window.removeEventListener("mousedown", hide);
+    window.removeEventListener("touchend", hide);
+    clearTimeout(t);
+  };
+}, []);
 
   // ⭐ AUTOCENTRADO REAL DEL HINT
   useLayoutEffect(() => {
@@ -183,7 +187,7 @@ export default function CarCarouselGlobal({
           if (!touchStart) return;
 
           const diff = touchStart - x;
-          setHintDirection(diff > 0 ? "right" : "left");
+          setHintDirection(diff < 0 ? "right" : "left");
         }}
         onTouchEnd={() => {
           if (touchStart !== null && touchEnd !== null) {
@@ -266,39 +270,45 @@ export default function CarCarouselGlobal({
                 position: "absolute",
               }}
             >
-              {/* Flecha */}
-              <div>
-                {hintDirection === "left" ? (
-                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M15 18l-7-6 7-6"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeOpacity="0.45"
-                    />
-                  </svg>
-                ) : (
-                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M8 5l7 7-7 7"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeOpacity="0.45"
-                    />
-                  </svg>
-                )}
-              </div>
+{/* Flecha (azul, más visible) */}
+<div>
+  {hintDirection === "left" ? (
+    <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M15 18l-7-6 7-6"
+        stroke="rgba(59,130,246,0.9)"   // azul Tailwind 500 con 75% opacidad
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  ) : (
+    <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M8 5l7 7-7 7"
+        stroke="rgba(59,130,246,0.9)"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  )}
+</div>
 
-              {/* Icono TAP */}
-              <div className="opacity-90">
-                <div className="w-10 h-10 rounded-full border border-white/30 flex items-center justify-center backdrop-blur-sm bg-white/6">
-                  <div className="w-2 h-2 rounded-full bg-white/70" />
-                </div>
-              </div>
+{/* Icono TAP azul semitransparente */}
+<div className="opacity-100">
+  <div className="w-12 h-12 rounded-full border border-[rgba(59,130,246,0.9)]
+     flex items-center justify-center backdrop-blur-sm 
+     bg-[rgba(59,130,246,0.15)]">
+
+    <div className="tap-dot w-3 h-3 rounded-full bg-[rgba(59,130,246,0.9)]" />
+  </div>
+</div>
+
+
+
             </div>
-          </div>
+
+            </div>
+        
         )}
 
         {/* Flecha izquierda (PC) */}
