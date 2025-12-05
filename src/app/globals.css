@@ -1,13 +1,12 @@
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 @import "tailwindcss";
 
-body {
-  @apply bg-gray-50 text-gray-900;
-}
 
+/* Estilos globales */
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
 
 html, body {
   padding: 0;
@@ -23,3 +22,53 @@ img {
 * {
   box-sizing: border-box;
 }
+
+/* -------------------------------------------------------------------------- */
+/* 🟦 NUEVO SISTEMA DE ANIMACIÓN PARA LOS HINTS (flecha + tap)                */
+/* -------------------------------------------------------------------------- */
+
+@keyframes hintSlide {
+  0% {
+    opacity: 0;
+    transform: translateX(0px) scale(0.92);
+  }
+  20% {
+    opacity: 0.6;
+    transform: translateX(var(--hint-move, 8px)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(calc(var(--hint-move, 8px) * 1.6)) scale(1);
+  }
+}
+
+.hint-appear {
+  animation: hintSlide 0.9s ease-out forwards;
+}
+
+.hint-appear[data-dir="right"] {
+  --hint-move: 10px;
+}
+
+.hint-appear[data-dir="left"] {
+  --hint-move: -10px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* ❌ ANIMACIONES ANTIGUAS (NO SE USAN YA) — Las dejo comentadas por si acaso */
+/* -------------------------------------------------------------------------- */
+/*
+@keyframes hintFade {
+  0% { opacity: 0; transform: translateX(0); }
+  15% { opacity: 0.85; }
+  85% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+
+@keyframes hintPop {
+  0% { opacity: 0; transform: scale(0.96); }
+  20% { opacity: 0.95; transform: scale(1); }
+  80% { opacity: 0.95; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.96); }
+}
+*/
