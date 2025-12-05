@@ -48,6 +48,11 @@ export default function CarCarouselGlobal({
   const lastShownRef = useRef(false);
   const timerRef = useRef<number | null>(null);
 
+  // TOUCH CONTROL (swipe vs tap)
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const SWIPE_THRESHOLD = 30;
+
   if (slides.length === 0) return null;
 
   // 🔥 FUNCIÓN CENTRAL: arranca el ciclo de fotos
@@ -63,7 +68,6 @@ export default function CarCarouselGlobal({
     lastShownRef.current = false;
     setFotoIndex(0);
 
-    // nuevo ciclo limpio
     timerRef.current = window.setTimeout(stepFn, interval);
   };
 
@@ -76,7 +80,6 @@ export default function CarCarouselGlobal({
         return startCycle(step);
       }
 
-      // Si el coche no tiene fotos → pasar al siguiente
       if (fotos.length === 0) {
         setIndex((i) => (i + 1) % slides.length);
         return resetAndRestart(step);
@@ -85,27 +88,22 @@ export default function CarCarouselGlobal({
       setFotoIndex((prev) => {
         const last = fotos.length - 1;
 
-        // FOTO NORMAL → pasar a la siguiente
         if (prev < last) {
           lastShownRef.current = false;
           startCycle(step);
           return prev + 1;
         }
 
-        // ÚLTIMA FOTO → mostrarla un intervalo entero
         if (!lastShownRef.current) {
           lastShownRef.current = true;
           startCycle(step);
-          return prev; // mantener última foto 1 ciclo
+          return prev;
         }
 
-        // SEGUNDA VEZ EN ÚLTIMA → cambiar coche
         lastShownRef.current = false;
         setIndex((i) => (i + 1) % slides.length);
 
-        // ARRANCAR CICLO NUEVO LIMPIO
         setTimeout(() => resetAndRestart(step), 0);
-
         return 0;
       });
     };
@@ -119,10 +117,7 @@ export default function CarCarouselGlobal({
 
   // BOTONES MANUALES
   const goPrev = () => {
-    setIndex((i) => {
-      const next = (i - 1 + slides.length) % slides.length;
-      return next;
-    });
+    setIndex((i) => (i - 1 + slides.length) % slides.length);
   };
 
   const goNext = () => {
@@ -142,15 +137,53 @@ export default function CarCarouselGlobal({
         className="relative w-full h-[70vh] max-h-[850px] min-h-[350px] overflow-hidden rounded-2xl shadow-2xl group"
         onMouseEnter={() => (hovering.current = true)}
         onMouseLeave={() => (hovering.current = false)}
+
+        // TOUCH START
+        onTouchStart={(e) => {
+          setTouchEnd(null);
+          setTouchStart(e.touches[0].clientX);
+        }}
+
+        // TOUCH MOVE
+        onTouchMove={(e) => {
+          setTouchEnd(e.touches[0].clientX);
+        }}
+
+        // TOUCH END (detecta swipe)
+        onTouchEnd={() => {
+          if (touchStart !== null && touchEnd !== null) {
+            const diff = touchStart - touchEnd;
+
+            if (Math.abs(diff) > SWIPE_THRESHOLD) {
+              if (diff > 0) goNext();
+              else goPrev();
+            }
+          }
+        }}
       >
         {fotos.map((url, i) => {
           const active = fotoIndex === i;
           return (
             <div
               key={url + i}
-              onClick={() => goToCar(slide.carId)}
+
+              // CLICK — solo funciona si NO ha habido swipe
+              onClick={(e) => {
+                if (touchStart !== null && touchEnd !== null) {
+                  const diff = touchStart - touchEnd;
+
+                  // si es swipe → cancelar click
+                  if (Math.abs(diff) > SWIPE_THRESHOLD) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                  }
+                }
+                goToCar(slide.carId);
+              }}
+              
               className={`absolute inset-0 transition-all duration-700 
-              ${active ? "opacity-100 scale-100" : "opacity-0 scale-105 pointer-events-none"}`}
+                ${active ? "opacity-100 scale-100" : "opacity-0 scale-105 pointer-events-none"}`}
             >
               <Image
                 src={url}
@@ -159,7 +192,7 @@ export default function CarCarouselGlobal({
                 className="object-cover brightness-[0.8]"
                 priority={i === fotoIndex}
               />
-              
+
               <div className="absolute bottom-12 left-12 text-white drop-shadow-lg">
                 <h2 className="text-4xl font-extrabold">
                   {slide.marca} {slide.model}
@@ -184,14 +217,13 @@ export default function CarCarouselGlobal({
         {/* BOTÓN IZQUIERDA */}
         <button
           onClick={goPrev}
-  className="hidden sm:flex absolute left-6 top-1/2 -translate-y-1/2 
-  w-14 h-14 rounded-full bg-black/40 backdrop-blur-md text-white 
-  items-center justify-center shadow-xl
-  opacity-0 group-hover:opacity-100 
-  transition-all duration-300 hover:scale-110
-  hover:shadow-[0_0_20px_rgba(59,130,246,0.7)]"
+          className="hidden sm:flex absolute left-6 top-1/2 -translate-y-1/2 
+          w-14 h-14 rounded-full bg-black/40 backdrop-blur-md text-white 
+          items-center justify-center shadow-xl
+          opacity-0 group-hover:opacity-100 
+          transition-all duration-300 hover:scale-110
+          hover:shadow-[0_0_20px_rgba(59,130,246,0.7)]"
         >
-          
           <svg width="30" height="30" fill="currentColor" viewBox="0 0 24 24">
             <path d="M15.5 19a1 1 0 0 1-.7-.29l-7-7a1 1 0 0 1 0-1.42l7-7a1 1 0 1 1 1.4 1.42L9.91 12l6.29 6.29A1 1 0 0 1 15.5 19z" />
           </svg>
@@ -201,18 +233,17 @@ export default function CarCarouselGlobal({
         <button
           onClick={goNext}
           className="hidden sm:flex absolute right-6 top-1/2 -translate-y-1/2 
-  w-14 h-14 rounded-full bg-black/40 backdrop-blur-md text-white 
-  items-center justify-center shadow-xl
-  opacity-0 group-hover:opacity-100 
-  transition-all duration-300 hover:scale-110
-  hover:shadow-[0_0_20px_rgba(59,130,246,0.7)]"
+          w-14 h-14 rounded-full bg-black/40 backdrop-blur-md text-white 
+          items-center justify-center shadow-xl
+          opacity-0 group-hover:opacity-100 
+          transition-all duration-300 hover:scale-110
+          hover:shadow-[0_0_20px_rgba(59,130,246,0.7)]"
         >
           <svg width="30" height="30" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8.5 5a1 1 0 0 1 .7.29l7 7a1 1 0 0 1 0 1.42l-7 7a1 1 0 1 1-1.4-1.42L14.09 12 7.79 5.71A1 1 0 0 1 8.5 5z" />
           </svg>
         </button>
-
-      </div>   {/* ← EL DIV QUE FALTABA AQUÍ */}
+      </div>
 
       {/* MINIATURAS */}
       {showThumbnails && fotos.length > 1 && (
@@ -225,7 +256,7 @@ export default function CarCarouselGlobal({
                 lastShownRef.current = false;
               }}
               className={`w-20 h-14 rounded-lg overflow-hidden shadow-md transition-all
-              ${fotoIndex === i ? "scale-110 border-blue-400 border-2" : "opacity-60"}`}
+                ${fotoIndex === i ? "scale-110 border-blue-400 border-2" : "opacity-60"}`}
             >
               <Image
                 src={url}
