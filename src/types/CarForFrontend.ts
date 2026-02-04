@@ -42,4 +42,5 @@ export interface CarForFrontend {
   // ⭐ NUEVO: CAMPOS DEL CARRUSEL
   destacado: boolean;
   carruselFotos: string[];  // <-- ESTE CAMPO ES EL QUE FALTABA
+  carruselMode?: string;
 }

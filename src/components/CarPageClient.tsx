@@ -7,6 +7,9 @@ import { useRouter } from "next/navigation";
 import CarCarousel from "@/components/CarCarousel";
 import { motion } from "framer-motion";
 import EtiquetaDGT from "@/components/EtiquetaDGT";
+import Toast from "@/components/Toast";
+import FavoriteModal from "@/components/FavoriteModal";
+import { useAuth } from "@/context/AuthContext";
 import { loadFieldConfig } from "@/config/carFields";
 
 interface Car {
@@ -38,17 +41,20 @@ interface Car {
 
 export default function CarPageClient({ id }: { id: string }) {
   const router = useRouter();
+  const { user, refreshToken } = useAuth();
   const [car, setCar] = useState<Car | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-
-  // ⭐ Modales
   const [videoModal, setVideoModal] = useState<string | null>(null);
   const [imageModal, setImageModal] = useState<string | null>(null);
-
-  // ⭐ Config campos
+  const [liked, setLiked] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [showToast, setShowToast] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const API = process.env.NEXT_PUBLIC_API_URL;
   const fieldConfig = loadFieldConfig();
 
+  // Cargar datos del coche
   useEffect(() => {
     let mounted = true;
 
@@ -94,6 +100,73 @@ export default function CarPageClient({ id }: { id: string }) {
       window.removeEventListener("keydown", handleEsc);
     };
   }, [id]);
+
+  // Verificar favoritos cuando car o user cambien
+  useEffect(() => {
+    if (user && car) {
+      const checkFav = async () => {
+        try {
+          const res = await fetch(`${API}/favoritos`, {
+            method: "GET",
+            credentials: "include",
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const isFav = data.favoritos?.some((fav: any) => fav.id === car.id);
+            setLiked(isFav || false);
+          }
+        } catch (err) {
+          console.error("Error:", err);
+        }
+      };
+      checkFav();
+    }
+  }, [user, car, API]);
+
+  const handleHeartClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      setShowModal(true);
+      return;
+    }
+    try {
+      const makeFavoriteRequest = async () => {
+        if (liked) {
+          return await fetch(`${API}/favoritos/${car?.id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+        } else {
+          return await fetch(`${API}/favoritos`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ carId: car?.id }),
+          });
+        }
+      };
+
+      let res = await makeFavoriteRequest();
+
+      // Si obtiene 401, refrescar token e intentar nuevamente
+      if (res.status === 401) {
+        console.log("Token expirado, refrescando...");
+        await refreshToken();
+        res = await makeFavoriteRequest();
+      }
+
+      if (res.ok) {
+        setLiked(!liked);
+        setToastMessage(
+          liked ? "Removido de favoritos" : "¡Añadido a favoritos!"
+        );
+        setShowToast(true);
+      }
+    } catch (err) {
+      console.error("Error:", err);
+    }
+  };
 
   if (loading)
     return <div className="text-center text-gray-500 text-xl mt-20">Cargando coche...</div>;
@@ -192,10 +265,10 @@ export default function CarPageClient({ id }: { id: string }) {
           </div>
 
           {/* ---------- ETIQUETA ---------- */}
-          {fieldConfig.ambiental?.visible && car.ambiental && (
+          {fieldConfig.ambiental?.visible && car.ambiental && car.ambiental !== "SIN_ETIQUETA.SVG" &&(
             <div className="flex items-center gap-3 mt-6">
-              <h4 className="font-semibold text-gray-700">Etiqueta ambiental:</h4>
-              <EtiquetaDGT tipo={car.ambiental} size={70} />
+              <h4 className="font-semibold text-gray-700"></h4>
+              <EtiquetaDGT tipo={car.ambiental} size={48} />
             </div>
           )}
 
@@ -349,6 +422,50 @@ export default function CarPageClient({ id }: { id: string }) {
           </div>
         </div>
       )}
+
+      {/* BOTÓN FLOTANTE FAVORITOS */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <motion.button
+          onClick={handleHeartClick}
+          className="bg-white rounded-full p-4 shadow-lg focus:outline-none border-2 border-red-500"
+          aria-label="Añadir a favoritos"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <motion.svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+            animate={{
+              scale: liked ? [1, 1.18, 1] : 1,
+              fill: liked ? "#ff6b81" : "transparent",
+            }}
+            transition={{
+              scale: { duration: 0.35, ease: "easeOut" },
+              fill: { duration: 0.3, ease: "linear" },
+            }}
+            className="w-6 h-6 text-red-500"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3.172 5.172a4.5 4.5 0 016.364 0L12 
+                 7.636l2.464-2.464a4.5 4.5 0 116.364 
+                 6.364L12 21.364l-8.828-8.828a4.5 
+                 4.5 0 010-6.364z"
+            />
+          </motion.svg>
+        </motion.button>
+      </div>
+
+      <FavoriteModal isOpen={showModal} onClose={() => setShowModal(false)} />
+      <Toast 
+        message={toastMessage} 
+        type="success" 
+        visible={showToast} 
+        onClose={() => setShowToast(false)} 
+      />
 
     </section>
   );

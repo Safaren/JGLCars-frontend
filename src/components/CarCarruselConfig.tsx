@@ -14,18 +14,27 @@ interface Car {
   id: number;
   destacado?: boolean;
   carruselFotos?: string[];
+  carruselMode?: string;
   imagenes?: CarImage[];
 }
 
 interface Props {
   car: Car;
-  onSave: (data: { destacado: boolean; carruselFotos: string[] }) => Promise<void>;
+  onSave: (data: { destacado: boolean; carruselFotos: string[]; carruselMode: string }) => Promise<void>;
   onCancel?: () => void;
 }
 
 export default function CarCarruselConfig({ car, onSave, onCancel }: Props) {
   // Estado inicial seguro
+  const [carruselMode, setCarruselMode] = useState<"custom" | "auto">(
+    (car.carruselMode as "custom" | "auto") ?? "custom"
+  );
   const [destacado, setDestacado] = useState<boolean>(car.destacado ?? false);
+  const [fotoSeleccionada, setFotoSeleccionada] = useState<string>(
+    Array.isArray(car.carruselFotos) && car.carruselFotos.length > 0
+      ? car.carruselFotos[0]
+      : ""
+  );
   const [seleccionadas, setSeleccionadas] = useState<string[]>(
     Array.isArray(car.carruselFotos) ? car.carruselFotos : []
   );
@@ -40,29 +49,41 @@ export default function CarCarruselConfig({ car, onSave, onCancel }: Props) {
   const toggleFoto = (url: string) => {
     setError(null); // limpiar errores
 
-    setSeleccionadas((prev) => {
-      // Si estaba seleccionada → quitar
-      if (prev.includes(url)) {
-        return prev.filter((f) => f !== url);
-      }
-
-      // Si no estaba seleccionada → añadir
-      if (prev.length >= 3) {
-        setError("Solo puedes seleccionar un máximo de 3 imágenes");
-        return prev;
-      }
-
-      return [...prev, url];
-    });
+    if (carruselMode === "custom") {
+      // En modo custom solo 1 foto
+      setFotoSeleccionada(fotoSeleccionada === url ? "" : url);
+    } else {
+      // En modo auto hasta 3 fotos
+      setSeleccionadas((prev) => {
+        if (prev.includes(url)) {
+          return prev.filter((f) => f !== url);
+        }
+        if (prev.length >= 3) {
+          setError("Solo puedes seleccionar un máximo de 3 imágenes");
+          return prev;
+        }
+        return [...prev, url];
+      });
+    }
   };
 
   // -------------------------
   //   Guardar cambios
   // -------------------------
+  
+
+  // -------------------------
+  //   Guardar cambios
+  // -------------------------
   const handleSave = async () => {
+    const fotosAGuardar = carruselMode === "custom" ? 
+      (fotoSeleccionada ? [fotoSeleccionada] : []) 
+      : seleccionadas;
+    
     await onSave({
       destacado,
-      carruselFotos: seleccionadas,
+      carruselFotos: fotosAGuardar,
+      carruselMode,
     });
   };
 
@@ -70,7 +91,11 @@ export default function CarCarruselConfig({ car, onSave, onCancel }: Props) {
   //   Limpiar selección
   // -------------------------
   const clearSelection = () => {
-    setSeleccionadas([]);
+    if (carruselMode === "custom") {
+      setFotoSeleccionada("");
+    } else {
+      setSeleccionadas([]);
+    }
     setError(null);
   };
 
@@ -91,28 +116,71 @@ export default function CarCarruselConfig({ car, onSave, onCancel }: Props) {
         Carrusel — Coche #{car.id}
       </h2>
 
-      {/* DESTACADO */}
-      <div className="flex items-center gap-3 bg-blue-50 p-3 rounded-lg">
-        <input
-          type="checkbox"
-          id={`dest-${car.id}`}
-          checked={destacado}
-          onChange={(e) => setDestacado(e.target.checked)}
-          className="w-5 h-5 accent-blue-600"
-        />
-        <label htmlFor={`dest-${car.id}`} className="text-lg font-medium">
-          Mostrar este coche como <b>destacado</b> en la portada
-        </label>
+      {/* SELECTOR DE MODO */}
+      <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-xl border-2 border-blue-300">
+        <p className="text-sm font-semibold text-gray-700 mb-3">Modo de carrusel:</p>
+        <div className="flex gap-4">
+          <button
+            onClick={() => {
+              setCarruselMode("custom");
+              setError(null);
+            }}
+            className={`flex-1 px-4 py-3 rounded-lg font-semibold transition ${
+              carruselMode === "custom"
+                ? "bg-blue-600 text-white shadow-lg"
+                : "bg-white text-gray-700 border-2 border-gray-300 hover:border-blue-400"
+            }`}
+          >
+            📸 Una foto (personalizado)
+          </button>
+          <button
+            onClick={() => {
+              setCarruselMode("auto");
+              setError(null);
+            }}
+            className={`flex-1 px-4 py-3 rounded-lg font-semibold transition ${
+              carruselMode === "auto"
+                ? "bg-blue-600 text-white shadow-lg"
+                : "bg-white text-gray-700 border-2 border-gray-300 hover:border-blue-400"
+            }`}
+          >
+            🔄 Todas las fotos (automático)
+          </button>
+        </div>
+        <p className="text-xs text-gray-600 mt-3">
+          {carruselMode === "custom"
+            ? "Selecciona 1 foto que representará a este coche en el carrusel de inicio"
+            : "El coche mostrará todas sus imágenes en el carrusel de inicio"}
+        </p>
       </div>
+
+      {/* DESTACADO - Solo para modo automático */}
+      {carruselMode === "auto" && (
+        <div className="flex items-center gap-3 bg-blue-50 p-3 rounded-lg">
+          <input
+            type="checkbox"
+            id={`dest-${car.id}`}
+            checked={destacado}
+            onChange={(e) => setDestacado(e.target.checked)}
+            className="w-5 h-5 accent-blue-600"
+          />
+          <label htmlFor={`dest-${car.id}`} className="text-lg font-medium">
+            Mostrar como <b>destacado</b> en portada
+          </label>
+        </div>
+      )}
 
       {/* CONTADOR */}
       <div className="flex justify-between items-center">
         <p className="text-gray-700 font-medium">
           Imágenes seleccionadas:{" "}
-          <span className="text-blue-600">{seleccionadas.length}</span> / 3
+          <span className="text-blue-600">
+            {carruselMode === "custom" ? (fotoSeleccionada ? 1 : 0) : seleccionadas.length}
+          </span>{" "}
+          / {carruselMode === "custom" ? 1 : 3}
         </p>
 
-        {seleccionadas.length > 0 && (
+        {(carruselMode === "custom" ? fotoSeleccionada : seleccionadas.length > 0) && (
           <button
             onClick={clearSelection}
             className="text-sm text-red-600 hover:underline"
@@ -131,7 +199,17 @@ export default function CarCarruselConfig({ car, onSave, onCancel }: Props) {
       )}
 
       {/* PREVISUALIZACIÓN DEL CARRUSEL */}
-      {preview.length > 0 && (
+      {carruselMode === "custom" && fotoSeleccionada && (
+        <div>
+          <h3 className="font-semibold text-gray-700 mb-2">Foto seleccionada:</h3>
+          <img
+            src={fotoSeleccionada}
+            className="w-48 h-40 object-cover rounded-lg border-2 border-blue-400 shadow"
+          />
+        </div>
+      )}
+
+      {carruselMode === "auto" && preview.length > 0 && (
         <div>
           <h3 className="font-semibold text-gray-700 mb-2">Vista previa:</h3>
           <div className="flex gap-3">
@@ -157,7 +235,7 @@ export default function CarCarruselConfig({ car, onSave, onCancel }: Props) {
         <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
           {car.imagenes?.map((imagen) => {
             const url = imagen.url;
-            const isSelected = seleccionadas.includes(url);
+            const isSelected = carruselMode === "custom" ? fotoSeleccionada === url : seleccionadas.includes(url);
 
             return (
               <button
@@ -176,7 +254,9 @@ export default function CarCarruselConfig({ car, onSave, onCancel }: Props) {
                 {/* Overlay selección */}
                 {isSelected && (
                   <div className="absolute inset-0 bg-blue-700 bg-opacity-40 flex items-center justify-center">
-                    <span className="text-white font-bold text-lg drop-shadow">SELECCIONADA</span>
+                    <span className="text-white font-bold text-lg drop-shadow">
+                      {carruselMode === "custom" ? "✓" : "SELECCIONADA"}
+                    </span>
                   </div>
                 )}
               </button>

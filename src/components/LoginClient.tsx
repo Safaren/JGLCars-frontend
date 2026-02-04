@@ -53,6 +53,11 @@ export default function LoginClient() {
   // 🔥 LOGIN SOCIAL
   // =======================================================
 
+  const handleGoogle = () => {
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+    window.location.href = url;
+  };
+
   return (
     <motion.section
       className="py-16 flex justify-center"
@@ -103,12 +108,15 @@ export default function LoginClient() {
         </form>
 
         <div className="text-center mt-4">
-          <Link
-            href="/recuperar"
-            className="text-sm text-gray-600 hover:underline"
-          >
-            ¿Olvidaste tu contraseña?
-          </Link>
+          <Link href="/recuperar" className="text-sm text-gray-600 hover:underline">¿Olvidaste tu contraseña?</Link>
+          <div className="mt-3">
+            <button onClick={handleGoogle} className="bg-white border px-4 py-2 rounded inline-flex items-center gap-2">
+              <img src="/google.svg" alt="Google" className="h-5" /> Entrar con Google
+            </button>
+          </div>
+          <div className="mt-3 text-sm">
+            ¿No tienes cuenta? <Link href="/register" className="text-blue-600 hover:underline">Regístrate</Link>
+          </div>
         </div>
       </div>
     </motion.section>

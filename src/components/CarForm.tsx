@@ -343,7 +343,7 @@ const [form, setForm] = useState<FormState>(
           const isError = errors[key];
           const backendMsg = savedBackendErrors[key];
 
-          if (!cfg.visible) return null;
+          //if (!cfg.visible) return null;
 
           return (
             <div key={key} className="flex flex-col gap-1">

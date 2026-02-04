@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
       </head>
 
-      <body className="bg-gray-500 min-h-screen flex flex-col text-gray-900 antialiased">
+      <body className="bg-gray-500 min-h-screen flex flex-col text-gray-900 antialiased" suppressHydrationWarning>
 
         {/* 🔥 Client-side features (token refresher, toast, etc.) */}
         <ClientWrapper>

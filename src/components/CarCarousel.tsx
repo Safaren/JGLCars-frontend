@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -28,17 +28,22 @@ export default function SimpleCarousel({
   useEffect(() => setIndex(0), [images]);
 
   useEffect(() => {
-    if (!images.length || hovering) return;
+    if (!images.length) return;
+    
     const t = setInterval(
       () => setIndex((i) => (i + 1) % images.length),
       interval
     );
     return () => clearInterval(t);
-  }, [images, interval, hovering]);
+  }, [images, interval]);
 
-  const goPrev = () =>
+  const goPrev = useCallback(() => {
     setIndex((i) => (i - 1 + images.length) % images.length);
-  const goNext = () => setIndex((i) => (i + 1) % images.length);
+  }, [images.length]);
+
+  const goNext = useCallback(() => {
+    setIndex((i) => (i + 1) % images.length);
+  }, [images.length]);
 
   const handleTouchStart = (e: React.TouchEvent) =>
     (startX.current = e.touches[0].clientX);
@@ -91,17 +96,19 @@ export default function SimpleCarousel({
 
         {/* FLECHA PREV */}
         <button
+          type="button"
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             goPrev();
           }}
           className="
-            hidden sm:flex
+            flex
             absolute left-4 top-1/2 -translate-y-1/2
-            w-14 h-14 rounded-full bg-lineal-to-br from-black/40 to-black/10
+            w-14 h-14 rounded-full bg-black/40
             backdrop-blur-md border border-white/20 text-white
             items-center justify-center shadow-xl opacity-0 group-hover:opacity-100
-            transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_#3b82f6] hover:-translate-x-2
+            transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_#3b82f6] hover:-translate-x-2 z-10
           "
         >
           <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24">
@@ -111,17 +118,19 @@ export default function SimpleCarousel({
 
         {/* FLECHA NEXT */}
         <button
+          type="button"
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             goNext();
           }}
           className="
-            hidden sm:flex
+            flex
             absolute right-4 top-1/2 -translate-y-1/2
-            w-14 h-14 rounded-full bg-lineal-to-br from-black/40 to-black/10
+            w-14 h-14 rounded-full bg-black/40
             backdrop-blur-md border border-white/20 text-white
             items-center justify-center shadow-xl opacity-0 group-hover:opacity-100
-            transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_#3b82f6] hover:translate-x-2
+            transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_#3b82f6] hover:translate-x-2 z-10
           "
         >
           <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24">

@@ -5,10 +5,15 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CarForFrontend } from "@/types/CarForFrontend";
-import { FieldConfig } from "@/types/FieldConfig"; // <-- Asegúrate de tener este archivo
+import { FieldConfig } from "@/types/FieldConfig";
 import EtiquetaDGT from "@/components/EtiquetaDGT";
+import FavoriteModal from "@/components/FavoriteModal";
+import Toast from "@/components/Toast";
+import { useAuth } from "@/context/AuthContext";
+
+import { EtiB, EtiC, Eti0, EtiEco } from "@/components/Iconsdd";
 
 /* ============================================
    ICONOS MEJORADOS
@@ -66,8 +71,10 @@ interface CarCardProps {
    =========================================== */
 
 export default function CarCard({ car, fieldConfig = {} }: CarCardProps) {
+  const { user } = useAuth();
   const img = car.imagenes?.[0]?.url || "/no-image.jpg";
   const href = `/coches/${car.id}`;
+  const API = process.env.NEXT_PUBLIC_API_URL;
 
   // Helper: decidir si mostrar un campo (por defecto: true)
   const show = (key: string, fallback = true) =>
@@ -75,23 +82,90 @@ export default function CarCard({ car, fieldConfig = {} }: CarCardProps) {
 
   // ❤️ Estado del corazón
   const [liked, setLiked] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [showToast, setShowToast] = useState(false);
 
-  const handleHeartClick = (e: React.MouseEvent) => {
+  // Verificar si el coche está en favoritos al cargar
+  useEffect(() => {
+    if (!user) return;
+
+    const checkFavorite = async () => {
+      try {
+        const res = await fetch(`${API}/favoritos`, {
+          method: "GET",
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const isFavorite = data.favoritos?.some((fav: any) => fav.id === car.id);
+          setLiked(isFavorite || false);
+        }
+      } catch (err) {
+        console.error("Error checking favorites:", err);
+      }
+    };
+
+    checkFavorite();
+  }, [user, car.id, API]);
+
+  const { refreshToken } = useAuth();
+
+  const handleHeartClick = async (e: React.MouseEvent) => {
     // Evita que se abra la ficha del coche
     e.preventDefault();
     e.stopPropagation();
-    if (liked) return;
 
-    setLiked(true);
+    // Si no está logeado, muestra el modal
+    if (!user) {
+      setShowModal(true);
+      return;
+    }
 
-    // Texto pre-relleno para el formulario
-    const mensaje = `Me interesa el coche ${car.marca} ${car.model}`;
+    try {
+      const makeFavoriteRequest = async () => {
+        if (liked) {
+          // Eliminar de favoritos
+          return await fetch(`${API}/favoritos/${car.id}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+        } else {
+          // Agregar a favoritos
+          return await fetch(`${API}/favoritos`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ carId: car.id }),
+          });
+        }
+      };
 
-    // Redirección corta (300ms)
-    setTimeout(() => {
-      window.location.href =
-        `/contacto?carId=${car.id}&mensaje=${encodeURIComponent(mensaje)}`;
-    }, 300);
+      let res = await makeFavoriteRequest();
+
+      // Si obtiene 401, refrescar token e intentar nuevamente
+      if (res.status === 401) {
+        console.log("Token expirado, refrescando...");
+        await refreshToken();
+        res = await makeFavoriteRequest();
+      }
+
+      if (res.ok) {
+        setLiked(!liked);
+        setToastMessage(
+          liked ? "Removido de favoritos" : "¡Añadido a favoritos!"
+        );
+        setShowToast(true);
+      } else {
+        console.error("Error al actualizar favorito:", res.statusText);
+        setToastMessage("Error al actualizar favorito");
+        setShowToast(true);
+      }
+    } catch (err) {
+      console.error("Error al actualizar favorito:", err);
+      setToastMessage("Error al actualizar favorito");
+      setShowToast(true);
+    }
   };
 
   return (
@@ -170,9 +244,9 @@ export default function CarCard({ car, fieldConfig = {} }: CarCardProps) {
             </span>
           )}
           {/* BADGE: Venta por piezas */}
-{car.tipoVenta === "PIEZAS" && (
-  <div
-    className="
+          {car.tipoVenta === "PIEZAS" && (
+            <div
+              className="
       absolute top-4 left-1/2 -translate-x-1/2
       bg-red-600/90 backdrop-blur-sm
       px-4 py-1
@@ -180,10 +254,10 @@ export default function CarCard({ car, fieldConfig = {} }: CarCardProps) {
       text-white text-sm font-bold
       shadow-lg border border-red-300
     "
-  >
-    Venta por piezas
-  </div>
-)}
+            >
+              Venta por piezas
+            </div>
+          )}
 
         </div>
 
@@ -193,49 +267,54 @@ export default function CarCard({ car, fieldConfig = {} }: CarCardProps) {
             {show("marca") && car.marca} {show("model") && car.model}
           </h3>
 
-       {/* PRECIO O MENSAJE ESPECIAL SEGÚN TIPO DE VENTA */}
-{show("precio") && (
-  car.tipoVenta === "PIEZAS" ? (
-    <p className="text-red-500 font-bold text-lg">
-      Venta por piezas — consultar en contacto
-    </p>
-  ) : (
-    <p className="text-blue-600 font-extrabold text-2xl">
-      {typeof car.precio === "number"
-        ? car.precio.toLocaleString()
-        : car.precio} €
-    </p>
-  )
-)}
+          {/* PRECIO O MENSAJE ESPECIAL SEGÚN TIPO DE VENTA */}
+          {show("precio") && (
+            car.tipoVenta === "PIEZAS" ? (
+              <p className="text-red-500 font-bold text-lg">
+                Venta por piezas — consultar en contacto
+              </p>
+            ) : (
+              <p className="text-blue-600 font-extrabold text-2xl">
+                {typeof car.precio === "number"
+                  ? car.precio.toLocaleString()
+                  : car.precio} €
+              </p>
+            )
+          )}
 
 
           {/* Línea de especificaciones */}
-          <div className="text-gray-700 text-sm flex flex-wrap items-center gap-x-6 mt-2">
-            {show("potencia") && car.potencia && (
-              <span className="flex items-center gap-1">
-                <IconPotencia />
-                <strong className="text-gray-800">{car.potencia} CV</strong>
-              </span>
-            )}
+          {/* Línea de especificaciones */}
+          <div className="mt-2 space-y-1">
+            {/* Primera línea: Potencia, Combustible, Etiqueta */}
+            <div className="text-gray-700 text-sm flex flex-wrap items-center gap-x-6">
+              {show("potencia") && car.potencia && (
+                <span className="flex items-center gap-1">
+                  <IconPotencia />
+                  <strong className="text-gray-800">{car.potencia} CV</strong>
+                </span>
+              )}
 
-            {show("combustible") && car.combustible && (
-              <span className="flex items-center gap-1">
-                <IconCombustible />
-                <strong className="text-gray-800">{car.combustible}</strong>
-              </span>
-            )}
+              {show("combustible") && car.combustible && (
+                <span className="flex items-center gap-1">
+                  <IconCombustible />
+                  <strong className="text-gray-800">{car.combustible}</strong>
+                </span>
+              )}
 
-            {show("ambiental") && car.ambiental && (
-              <span className="flex items-center">
-                <EtiquetaDGT tipo={car.ambiental} size={32} />
-              </span>
-            )}
+              {show("ambiental") && car.ambiental && car.ambiental !== "SIN_ETIQUETA.SVG" && car.ambiental !== "SIN ETIQUETA" && car.ambiental !== "" && (
+                <span className="flex items-center">
+                  <EtiquetaDGT tipo={car.ambiental} size={32} />
+                </span>
+              )}
+            </div>
 
+            {/* Segunda línea: Kilómetros */}
             {show("km") && car.km != null && (
-              <span className="flex items-center gap-1">
+              <div className="text-gray-700 text-sm flex items-center gap-1">
                 <IconKm />
                 <strong className="text-gray-800">{car.km.toLocaleString()} km</strong>
-              </span>
+              </div>
             )}
           </div>
         </div>
@@ -253,6 +332,14 @@ export default function CarCard({ car, fieldConfig = {} }: CarCardProps) {
           </motion.div>
         </div>
       </Link>
+
+      <FavoriteModal isOpen={showModal} onClose={() => setShowModal(false)} />
+      <Toast
+        message={toastMessage}
+        type="success"
+        visible={showToast}
+        onClose={() => setShowToast(false)}
+      />
     </motion.div>
   );
 }

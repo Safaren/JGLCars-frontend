@@ -108,9 +108,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // cada 12 min
+  // cada 5 min (tokens se refrescan más frecuentemente para evitar expiración)
   useEffect(() => {
-    const interval = setInterval(refreshToken, 12 * 60 * 1000);
+    const interval = setInterval(refreshToken, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 

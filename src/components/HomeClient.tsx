@@ -26,17 +26,41 @@ export default function HomeClient({
     load();
   }, []);
 
-  // Filtrar destacados
-  const destacados = cars.filter((c) => Boolean(c.destacado));
+  // Construir carrusel: si hay coches con `carruselFotos` seleccionadas usamos modo personalizado
+  const customSelected = cars.filter(
+    (c) =>
+      (c.carruselMode === "custom" || c.carruselMode === undefined) &&
+      Array.isArray(c.carruselFotos) &&
+      c.carruselFotos.length > 0
+  );
+
+  // Si hay selección personalizada, construimos slides donde cada coche lleva su foto seleccionada
+  const carouselCars =
+    customSelected.length > 0
+      ? // crear 'fake' cars donde carruselFotos contiene main + siguientes coches seleccionados
+        customSelected.map((c, idx, arr) => {
+          const main = c.carruselFotos![0];
+          const nextImgs: string[] = [];
+          const want = Math.min(3, arr.length - 1);
+          for (let i = 1; i <= want; i++) {
+            const next = arr[(idx + i) % arr.length];
+            nextImgs.push(next.carruselFotos![0]);
+          }
+          return {
+            ...c,
+            carruselFotos: [main, ...nextImgs],
+          } as typeof c;
+        })
+      : cars.filter((c) => Boolean(c.destacado));
 
   return (
     <main className="min-h-screen px-6 lg:px-16 mt-20">
 
       {/* 🔵 CARRUSEL GLOBAL */}
-      {destacados.length > 0 && (
+      {carouselCars.length > 0 && (
         <div className="mb-16">
           <CarCarouselGlobal
-            cars={destacados}
+            cars={carouselCars}
             interval={4500}
             showThumbnails={true}
           />

@@ -40,6 +40,11 @@ type CarruselConfigInput = {
   destacado: boolean;
   carruselFotos: string[];
 };
+type CarruselConfigInput = {
+  destacado: boolean;
+  carruselFotos: string[];
+  carruselMode: string;
+};
 
 export default function AdminPage() {
   const { user } = useAuth();
