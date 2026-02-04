@@ -39,10 +39,6 @@ const sanitizeCar = (car: any): CarForFrontend => ({
 type CarruselConfigInput = {
   destacado: boolean;
   carruselFotos: string[];
-};
-type CarruselConfigInput = {
-  destacado: boolean;
-  carruselFotos: string[];
   carruselMode: string;
 };
 
@@ -70,13 +66,13 @@ export default function AdminPage() {
   // 📌 Cargar coches desde API (paginado)
   // ===============================
   const loadCars = async (pageNumber = 1) => {
-    
+
 
     try {
       const { cars: newCars, hasMore } = await getCarsPaginated(pageNumber);
 
       const sanitized = newCars.map((c: any) => sanitizeCar(c));
-console.log("📥 PAGINA:", pageNumber, newCars);
+      console.log("📥 PAGINA:", pageNumber, newCars);
       setCars((prev) => {
         if (pageNumber === 1) return sanitized;
 
@@ -230,33 +226,30 @@ console.log("📥 PAGINA:", pageNumber, newCars);
       <div className="flex gap-4 mb-8">
         <button
           onClick={() => setSection("cars")}
-          className={`px-4 py-2 rounded-lg ${
-            section === "cars"
+          className={`px-4 py-2 rounded-lg ${section === "cars"
               ? "bg-blue-600 text-white"
               : "bg-gray-200 hover:bg-gray-300"
-          }`}
+            }`}
         >
           Gestión de coches
         </button>
 
         <button
           onClick={() => setSection("carousel")}
-          className={`px-4 py-2 rounded-lg ${
-            section === "carousel"
+          className={`px-4 py-2 rounded-lg ${section === "carousel"
               ? "bg-blue-600 text-white"
               : "bg-gray-200 hover:bg-gray-300"
-          }`}
+            }`}
         >
           Carrusel de inicio
         </button>
 
         <button
           onClick={() => setSection("fields")}
-          className={`px-4 py-2 rounded-lg ${
-            section === "fields"
+          className={`px-4 py-2 rounded-lg ${section === "fields"
               ? "bg-blue-600 text-white"
               : "bg-gray-200 hover:bg-gray-300"
-          }`}
+            }`}
         >
           Configurar campos
         </button>
@@ -328,23 +321,23 @@ console.log("📥 PAGINA:", pageNumber, newCars);
       )}
 
       {/* PANEL CARRUSEL */}
-{section === "carousel" && !selectedCarForCarousel && (
-  <CarCarruselPanel
-    onSelectCar={(car) => setSelectedCarForCarousel(car)}
-  />
-)}
+      {section === "carousel" && !selectedCarForCarousel && (
+        <CarCarruselPanel
+          onSelectCar={(car) => setSelectedCarForCarousel(car)}
+        />
+      )}
 
-{section === "carousel" && selectedCarForCarousel && (
-  <CarCarruselConfig
-    car={selectedCarForCarousel}
-    onSave={async (data) => {
-      await saveCarruselConfig(selectedCarForCarousel.id, data);
-      setSelectedCarForCarousel(null);
-      loadCars();
-    }}
-    onCancel={() => setSelectedCarForCarousel(null)}
-  />
-)}
+      {section === "carousel" && selectedCarForCarousel && (
+        <CarCarruselConfig
+          car={selectedCarForCarousel}
+          onSave={async (data) => {
+            await saveCarruselConfig(selectedCarForCarousel.id, data);
+            setSelectedCarForCarousel(null);
+            loadCars();
+          }}
+          onCancel={() => setSelectedCarForCarousel(null)}
+        />
+      )}
 
 
       {/* PANEL CAMPOS */}
