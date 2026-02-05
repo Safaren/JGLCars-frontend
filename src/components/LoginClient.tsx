@@ -99,9 +99,8 @@ export default function LoginClient() {
 
           <button
             disabled={loading}
-            className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition ${
-              loading ? "opacity-60 cursor-not-allowed" : "hover:bg-blue-700"
-            }`}
+            className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition ${loading ? "opacity-60 cursor-not-allowed" : "hover:bg-blue-700"
+              }`}
           >
             {loading ? "Accediendo..." : "Entrar"}
           </button>

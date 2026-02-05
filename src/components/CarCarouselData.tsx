@@ -132,25 +132,25 @@ export default function CarCarouselGlobal({
   const slide = slides[index];
   const fotos = slide.fotos;
 
- // 🟦 CONTROLAR VISIBILIDAD DE HINTS
-useEffect(() => {
-  const hide = () => setShowHints(false);
+  // 🟦 CONTROLAR VISIBILIDAD DE HINTS
+  useEffect(() => {
+    const hide = () => setShowHints(false);
 
-  // En desktop: ocultar al primer click (mousedown) — sigue siendo útil
-  window.addEventListener("mousedown", hide, { once: true });
+    // En desktop: ocultar al primer click (mousedown) — sigue siendo útil
+    window.addEventListener("mousedown", hide, { once: true });
 
-  // En touch: preferimos ocultar al terminar el gesto (touchend)
-  window.addEventListener("touchend", hide, { once: true });
+    // En touch: preferimos ocultar al terminar el gesto (touchend)
+    window.addEventListener("touchend", hide, { once: true });
 
-  // Fallback: ocultar pasado un tiempo por si el usuario mantiene el dedo mucho tiempo
-  const t = window.setTimeout(hide, 4000);
+    // Fallback: ocultar pasado un tiempo por si el usuario mantiene el dedo mucho tiempo
+    const t = window.setTimeout(hide, 4000);
 
-  return () => {
-    window.removeEventListener("mousedown", hide);
-    window.removeEventListener("touchend", hide);
-    clearTimeout(t);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("mousedown", hide);
+      window.removeEventListener("touchend", hide);
+      clearTimeout(t);
+    };
+  }, []);
 
   // ⭐ AUTOCENTRADO REAL DEL HINT
   useLayoutEffect(() => {
@@ -160,9 +160,8 @@ useEffect(() => {
     const el = hintRef.current;
     const rect = el.getBoundingClientRect();
 
-    el.style.transform = `translate(-${rect.width / 2}px, -${
-      rect.height * 0.35
-    }px)`;
+    el.style.transform = `translate(-${rect.width / 2}px, -${rect.height * 0.35
+      }px)`;
   }, [showHints, hintX, hintY]);
 
   return (
@@ -222,11 +221,10 @@ useEffect(() => {
                 }
                 goToCar(slide.carId);
               }}
-              className={`absolute inset-0 transition-all duration-700 ${
-                active
+              className={`absolute inset-0 transition-all duration-700 ${active
                   ? "opacity-100 scale-100"
                   : "opacity-0 scale-105 pointer-events-none"
-              }`}
+                }`}
             >
               <Image
                 src={url}
@@ -270,45 +268,45 @@ useEffect(() => {
                 position: "absolute",
               }}
             >
-{/* Flecha (azul, más visible) */}
-<div>
-  {hintDirection === "left" ? (
-    <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M15 18l-7-6 7-6"
-        stroke="rgba(59,130,246,0.9)"   // azul Tailwind 500 con 75% opacidad
-        strokeWidth="2.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  ) : (
-    <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M8 5l7 7-7 7"
-        stroke="rgba(59,130,246,0.9)"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  )}
-</div>
+              {/* Flecha (azul, más visible) */}
+              <div>
+                {hintDirection === "left" ? (
+                  <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M15 18l-7-6 7-6"
+                      stroke="rgba(59,130,246,0.9)"   // azul Tailwind 500 con 75% opacidad
+                      strokeWidth="2.6"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                ) : (
+                  <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M8 5l7 7-7 7"
+                      stroke="rgba(59,130,246,0.9)"
+                      strokeWidth="2.6"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                )}
+              </div>
 
-{/* Icono TAP azul semitransparente */}
-<div className="opacity-100">
-  <div className="w-12 h-12 rounded-full border border-[rgba(59,130,246,0.9)]
+              {/* Icono TAP azul semitransparente */}
+              <div className="opacity-100">
+                <div className="w-12 h-12 rounded-full border border-[rgba(59,130,246,0.9)]
      flex items-center justify-center backdrop-blur-sm 
      bg-[rgba(59,130,246,0.15)]">
 
-    <div className="tap-dot w-3 h-3 rounded-full bg-[rgba(59,130,246,0.9)]" />
-  </div>
-</div>
+                  <div className="tap-dot w-3 h-3 rounded-full bg-[rgba(59,130,246,0.9)]" />
+                </div>
+              </div>
 
 
 
             </div>
 
-            </div>
-        
+          </div>
+
         )}
 
         {/* Flecha izquierda (PC) */}
@@ -345,30 +343,54 @@ useEffect(() => {
       </div>
 
       {/* MINIATURAS */}
-      {showThumbnails && fotos.length > 1 && (
-        <div className="w-full flex justify-center gap-3 mt-5">
-          {fotos.map((url, i) => (
-            <button
-              key={url + "-thumb-" + i}
-              onClick={() => {
-                setFotoIndex(i);
-                lastShownRef.current = false;
-              }}
-              className={`w-20 h-14 rounded-lg overflow-hidden shadow-md transition-all ${
-                fotoIndex === i
-                  ? "scale-110 border-blue-400 border-2"
-                  : "opacity-60"
-              }`}
-            >
-              <Image
-                src={url}
-                alt="thumbnail"
-                width={80}
-                height={60}
-                className="object-cover w-full h-full"
-              />
-            </button>
-          ))}
+      {/* MINIATURAS (Dos modos: Navegación entre Coches vs Navegación Fotos interna) */}
+      {showThumbnails && (
+        <div className="w-full flex justify-center gap-3 mt-5 px-4 flex-wrap">
+          {/* MODO 1: Múltiples Coches (Slides) -> Mostrar miniatura principal de cada coche */}
+          {slides.length > 1 ? (
+            slides.map((s, i) => (
+              <button
+                key={s.carId + "-slide-" + i}
+                onClick={() => setIndex(i)}
+                className={`w-20 h-14 rounded-lg overflow-hidden shadow-md transition-all ${index === i
+                    ? "scale-110 border-blue-400 border-2"
+                    : "opacity-60 hover:opacity-100"
+                  }`}
+              >
+                <Image
+                  src={s.fotos[0] || "/no-image.jpg"}
+                  alt={`thumbnail-${i}`}
+                  width={80}
+                  height={60}
+                  className="object-cover w-full h-full"
+                />
+              </button>
+            ))
+          ) : (
+            /* MODO 2: Un solo coche con múltiples fotos -> Mostrar fotos internas */
+            fotos.length > 1 &&
+            fotos.map((url, i) => (
+              <button
+                key={url + "-thumb-" + i}
+                onClick={() => {
+                  setFotoIndex(i);
+                  lastShownRef.current = false;
+                }}
+                className={`w-20 h-14 rounded-lg overflow-hidden shadow-md transition-all ${fotoIndex === i
+                    ? "scale-110 border-blue-400 border-2"
+                    : "opacity-60 hover:opacity-100"
+                  }`}
+              >
+                <Image
+                  src={url}
+                  alt="thumbnail"
+                  width={80}
+                  height={60}
+                  className="object-cover w-full h-full"
+                />
+              </button>
+            ))
+          )}
         </div>
       )}
     </>

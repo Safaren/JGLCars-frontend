@@ -37,20 +37,7 @@ export default function HomeClient({
   // Si hay selección personalizada, construimos slides donde cada coche lleva su foto seleccionada
   const carouselCars =
     customSelected.length > 0
-      ? // crear 'fake' cars donde carruselFotos contiene main + siguientes coches seleccionados
-        customSelected.map((c, idx, arr) => {
-          const main = c.carruselFotos![0];
-          const nextImgs: string[] = [];
-          const want = Math.min(3, arr.length - 1);
-          for (let i = 1; i <= want; i++) {
-            const next = arr[(idx + i) % arr.length];
-            nextImgs.push(next.carruselFotos![0]);
-          }
-          return {
-            ...c,
-            carruselFotos: [main, ...nextImgs],
-          } as typeof c;
-        })
+      ? customSelected
       : cars.filter((c) => Boolean(c.destacado));
 
   return (
