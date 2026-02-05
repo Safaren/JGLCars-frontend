@@ -53,7 +53,13 @@ export default function Footer() {
         <div>
           <h3 className="text-xl font-semibold text-white mb-4">Síguenos</h3>
           <div className="flex gap-4 text-2xl">
-            <motion.a whileHover={{ scale: 1.2 }} href="#" className="hover:text-white">
+            <motion.a
+              whileHover={{ scale: 1.2 }}
+              href="https://www.facebook.com/juan.lopezgil.370"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white"
+            >
               <FaFacebook />
             </motion.a>
             <motion.a whileHover={{ scale: 1.2 }} href="#" className="hover:text-white">
@@ -68,7 +74,7 @@ export default function Footer() {
 
       {/* COPYRIGHT */}
       <div className="border-t border-gray-700 mt-10 pt-6 text-center text-gray-500 text-sm">
-        © {new Date().getFullYear()} JLGCars. Todos los derechos reservados.
+        © {new Date().getFullYear()} JLGCars. Todos los derechos reservados. Powered by Safaren.
       </div>
     </footer>
   );
